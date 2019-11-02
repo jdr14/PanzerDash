@@ -441,20 +441,65 @@ var drawHelpScreen = function() {
 };
 
 var drawEnemy1 = function() {
-    image(GameScreens_t.ENEMY_ONE, 0, 0, 20, 20);
+    image(GameScreens_t.ENEMY_ONE, 30, 10, 60, 60);
+    fill(255, 255, 0);
+    text("Enemy One", 30, 100);
 };
 
 var drawEnemy2 = function() {
-    image(GameScreens_t.ENEMY_TWO, 0, 0, 20, 20);
+    image(GameScreens_t.ENEMY_TWO, 160, 10, 60, 60);
+    fill(255, 255, 0);
+    text("Enemy Two", 160, 100);
 };
 
 var drawEnemy3 = function() {
-    image(GameScreens_t.ENEMY_THREE, 0, 0, 20, 20);
+    image(GameScreens_t.ENEMY_THREE, 280, 10, 60, 60);
+    fill(255, 255, 0);
+    text("Enemy Three", 280, 100);
 };
 
 var drawEnemy4 = function() {
-    image(GameScreens_t.ENEMY_FOUR, 0, 0, 20, 20);
+    image(GameScreens_t.ENEMY_FOUR, 400, 10, 60, 60);
+    fill(255, 255, 0);
+    text("Enemy Four", 400, 100);
 };
+
+var drawTank = function() {
+    fill(45, 148, 22);
+    ellipse(120, 470, 80, 20);
+    noStroke();
+    ellipse(120, 450, 80, 40);
+    rect(80, 410, 50, 40);
+    fill(255, 255, 255);
+    rect(90, 420, 30, 20);
+    fill(0,0,0);
+    ellipse(100, 470, 15, 15);
+    ellipse(120, 470, 15, 15);
+    ellipse(140, 470, 15, 15);
+    rect(95, 425, 20, 10);
+    fill(150, 102, 30)
+    rect(130, 440, 10, 10);
+    fill(255, 255, 255);
+    text("The enemies as listed above are the\n different" +
+    "levels of difficulty. The tank\n as shown below is one of " +
+    "three different\n characters to play!", 180, 330);
+}
+
+var drawInstructions = function() {
+    fill(10, 5, 153);
+    text("Objective of Game:\n" +
+    "While trying to get to the end of the battlefield,\n" +
+    "you are going to be doging several obstacles\n" +
+    "by doing special and cool maneuvers. With\n every" +
+    "level and the farther you get, the more\n obstancles" +
+    "appear in your path! Each enemy\n has a special attack" +
+    "that they will perform to\n stop you from completing the" +
+    "course! And if\n that was not hard enough before you can\n" +
+    "cross the finish line, you will have to defeat\n the Big Bad" +
+    "Boss. Throughout the game you\n can purchase weapons that will " +
+    "help defend\n youself. The rewards are high, but the road\n to victory" +
+    "is a long one. Take it if you dare!!", 170, 70);
+}
 
 // Setup the FSM within this function
 var draw = function() {
@@ -488,6 +533,7 @@ var draw = function() {
         case GameState_e.HELP_SCREEN:
             println("TODO: HELP_SCREEN");
             drawHelpScreen();
+            drawInstructions();
             break;
         case GameState_e.CREDITS:
             println("TODO: CREDITS");
@@ -505,6 +551,11 @@ var draw = function() {
             println("TODO: WIN_SCREEN");
             break;
         default:
+            drawEnemy1();
+            drawEnemy2();
+            drawEnemy3();
+            drawEnemy4();
+            drawTank();
             // console.debug("Error: Default game state hit!");
             // println("Error: Default game state hit!");
             break;
