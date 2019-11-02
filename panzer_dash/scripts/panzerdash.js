@@ -16,13 +16,18 @@
  * Translation: This game also takes advantage of translation to give the player the feeling of
  * an overhead camera tracking their player on a 400x400 grid.
  *
- * Artist: Alex Shammas (Artist behind all of the assets including the unique background)
- * Author: Joey (Joseph) Rodgers (Programmer and also used the assets to lay out a custom tilemap)
- * Date: 9/27/2019
+ * Artist: 
+ *     Alex Shammas 
+ * Programmer: 
+ *     Joey (Joseph) Rodgers
+ *     Jovany Cabrera 
  */
 
+var SCREEN_WIDTH = 500;
+var SCREEN_HEIGHT = 500;
+
 var sketchProc=function(processingInstance){ with (processingInstance){
-size(400, 400); 
+size(SCREEN_WIDTH, SCREEN_HEIGHT); 
 frameRate(60);
 
 //ProgramCodeGoesHere
@@ -33,6 +38,8 @@ var TS = 20;  // Global var/switch to enforce a certain pixel count for height a
 /*
     @pjs 
     preload =
+        '../assets/main_menu.jpg',
+        '../assets/bg_scene3.png',
         '../assets/samurai_cover.jpg',
         '../assets/bones.png',
         '../assets/enemy1.png',
@@ -52,43 +59,34 @@ var TS = 20;  // Global var/switch to enforce a certain pixel count for height a
         '../assets/player_upgraded.png',
         '../assets/player.png',
         '../assets/sword.png';
-
     crisp='true';
 */
 
-// Created an enum for use in a switch statement later to track the current game state
+// Enum for each game state in the PanzerDash FSM diagram
 var GameState_e = {
-    START: 0,
-    GAME_IN_PROGRESS: 1,
-    GAME_OVER_LOSE: 2,
-    GAME_OVER_WIN: 3,
+    START_SCREEN: 0, // Start Screen
+    LEVEL_ONE: 1,
+    LEVEL_TWO: 2, 
+    LEVEL_THREE: 3,
+    WIN_SCREEN: 4,
+    LOSE_SCREEN: 5,
+    CREDITS: 6,
+    HELP_SCREEN: 7,
+    ANIMATED_LOAD_TRANSITION: 8,
+    ANIMATED_WIN_TRANSITION: 9,
+    ANIMATED_LOSE_TRANSITION: 10,
+    DEFAULT: 11,
 };
 
 // Created a struct like variable to store the different game screens
 var GameScreens_t = {
-    START_SCREEN: loadImage('../assets/samurai_cover.jpg'),
-    BACKGROUND:   loadImage('../assets/map.png'),
-    LOSE_SCREEN:  loadImage('../assets/lose_screen.jpg'),   
-    WIN_SCREEN:   loadImage('../assets/win_screen.jpg'),    
+    START_SCREEN: loadImage('../assets/main_menu.jpg'),
+    ANIMATION: loadImage('../assets/bg_scene1.png'),
+    LEVEL_ONE: loadImage('../assets/bg_scene3.png'),
 };
 
 var Assets_t = {
-    PLAYER:    loadImage('../assets/player.png'),
-    PLAYER_UG: loadImage('../assets/player_upgraded.png'),
-    ENEMY_1:   loadImage('../assets/enemy1.png'),   
-    ENEMY_2:   loadImage('../assets/enemy2.png'),
-    BONES:     loadImage('../assets/bones.png'),           // Tilemap key: 'b'   
-    FENCE_X:   loadImage('../assets/obj_fence_x.png'),     // Tilemap key: 'f'
-    FENCE_Y:   loadImage('../assets/obj_fence_y.png'),     // Tilemap key: 'g'
-    STATUE:    loadImage('../assets/obj_statue.png'),      // Tilemap key: 's'
-    STONE_1:   loadImage('../assets/obj_stone1.png'),      // Tilemap key: '1'
-    STONE_2:   loadImage('../assets/obj_stone2.png'),      // Tilemap key: '2'
-    WALL_X:    loadImage('../assets/obj_wall_x.png'),      // Tilemap key: 'x'
-    WALL_Y:    loadImage('../assets/obj_wall_y.png'),      // Tilemap key: 'y'
-    WALL_BOT:  loadImage('../assets/obj_wall_bottom.png'), // Tilemap key: 'w'
-    WALL_TOP:  loadImage('../assets/obj_wall_top.png'),    // Tilemap key: 't'
-    WALL_L:    loadImage('../assets/obj_wall_l.png'),      // Tilemap key: 'l'
-    SWORD:     loadImage('../assets/sword.png'),           // Tilemap key: 'S'
+    // Load assets in here
 }
 
 // This is the main character (i.e. the samurai)
@@ -125,95 +123,9 @@ var enemy2Obj = function(x, y, s) {
     this.defeated = false;
 };
 
-// This is the collectable item.  Several will be placed throughout the map
-var bonesObj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collected = false;
-    this.collectable = true;
-    this.isSword = false;
-};
-
-var fenceXObj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collectable = false;
-    this.isSword = false;
-};
-
-var fenceYObj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collectable = false;
-    this.isSword = false;
-};
-
-var statueObj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collectable = false;
-    this.isSword = false;
-};
-
-// Stone objects are defined below
-var stone1Obj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collectable = false;
-    this.isSword = false;
-};
-
-var stone2Obj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collectable = false;
-    this.isSword = false;
-};
-
-// Wall objects are defined below
-var wallXObj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collectable = false;
-    this.isSword = false;
-};
-
-var wallYObj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collectable = false;
-    this.isSword = false;
-};
-
-var wallBotObj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collectable = false;
-    this.isSword = false;
-};
-
-var wallTopObj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collectable = false;
-    this.isSword = false;
-};
-
-var wallLObj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collectable = false;
-    this.isSword = false;
-};
-
-// One instance of this magical item will be placed in the tilemap for the player to collect
-var swordObj = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.collected = false;
-    this.collectable = true;
-    this.isSword = true;
-};
+/*
+ * Asset object definitions should go below here
+ */
 
 // Define key press state structure and related functions
 var keyState = {
@@ -251,6 +163,7 @@ var DISABLE = {
     D: false,
 };
 
+/*
 playerObj.prototype.draw = function() {
     var self = this;
 
@@ -310,168 +223,65 @@ playerUpgradedObj.prototype.draw = function() {
     updatePosByKey();  // Get key press updates to move player
     image(Assets_t.PLAYER_UG, self.x, self.y, TS, TS);
 };
-
-enemy1Obj.prototype.wander = function() {
-    this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
-    this.step.mult(this.speed);
-    this.position.add(this.step);
-    this.wanderDistance--;
-    if (this.wanderDistance < 0) {
-        this.wanderDistance = random(0, 50);
-        this.wanderAngle += random(-90, 90);
-    }
-}
-
-enemy1Obj.prototype.seek = function() {
-    if (dist(player.x, player.y, this.position.x, this.position.y) > 5) {
-        this.step.set(player.x - this.position.x, player.y - this.position.y);
-        this.step.normalize();
-        this.step.mult(this.speed);
-        this.position.add(this.step);
-    }
-}
-
-enemy2Obj.prototype.wander = function() {
-    this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
-    this.step.mult(this.speed);
-    this.position.add(this.step);
-    this.wanderDistance--;
-    if (this.wanderDistance < 0) {
-        this.wanderDistance = random(0, 50);
-        this.wanderAngle += random(-90, 90);
-    }
-}
-
-enemy2Obj.prototype.seek = function() {
-    if (dist(player.x, player.y, this.position.x, this.position.y) > 5) {
-        this.step.set(player.x - this.position.x, player.y - this.position.y);
-        this.step.normalize();
-        this.step.mult(this.speed);
-        this.position.add(this.step);
-    }
-}
-
-enemy1Obj.prototype.draw = function() {
-    image(Assets_t.ENEMY_1, this.position.x, this.position.y, TS, TS);
-};
-
-enemy2Obj.prototype.draw = function() {
-    image(Assets_t.ENEMY_2, this.position.x, this.position.y, TS, TS);
-};
-
-bonesObj.prototype.draw = function() {
-    image(Assets_t.BONES, this.x, this.y, TS, TS);
-};
-
-fenceXObj.prototype.draw = function() {
-    image(Assets_t.FENCE_X, this.x, this.y, TS, TS);
-};
-
-fenceYObj.prototype.draw = function() {
-    image(Assets_t.FENCE_Y, this.x, this.y, TS, TS);
-};
-
-statueObj.prototype.draw = function() {
-    image(Assets_t.STATUE, this.x, this.y, TS, TS);
-};
-
-stone1Obj.prototype.draw = function() {
-    image(Assets_t.STONE_1, this.x, this.y, TS, TS);
-};
-
-stone2Obj.prototype.draw = function() {
-    image(Assets_t.STONE_2, this.x, this.y, TS, TS);
-};
-
-wallXObj.prototype.draw = function() {
-    image(Assets_t.WALL_X, this.x, this.y, TS, TS);
-};
-
-wallYObj.prototype.draw = function() {
-    image(Assets_t.WALL_Y, this.x, this.y, TS, TS);
-};
-
-wallBotObj.prototype.draw = function() {
-    image(Assets_t.WALL_BOT, this.x, this.y, TS, TS);
-};
-
-wallTopObj.prototype.draw = function() {
-    image(Assets_t.WALL_TOP, this.x, this.y, TS, TS);
-};
-
-wallLObj.prototype.draw = function() {
-    image(Assets_t.WALL_L, this.x, this.y, TS, TS);
-};
-
-swordObj.prototype.draw = function() {
-    image(Assets_t.SWORD, this.x, this.y, TS, TS);
-};
+*/
 
 var drawStartScreen = function() {
-    image(GameScreens_t.START_SCREEN, 0, 0, 400, 400);
-};
-
-var drawLosingEndScreen = function() {
-    image(GameScreens_t.LOSE_SCREEN, 0, 0, 400, 400);
-};
-
-var drawWinningEndScreen = function() {
-    image(GameScreens_t.WIN_SCREEN, 0, 0, 400, 400);
+    image(GameScreens_t.START_SCREEN, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 };
 
 var gameObj = function() {
-    // Because each tile is 20 x 20 pixels, 
-    this.tilemap = [
-        "lxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",  // row: 1  - 20   px
-        "y               g        g                  11111y",  // row: 2  - 40   px
-        "y               g        g                  22222y",  // row: 3  - 60   px
-        "y               g        g                  11111y",  // row: 4  - 80   px
-        "y     s         g        g                       y",  // row: 5  - 100  px
-        "y               2        2                       y",  // row: 6  - 120  px
-        "y               g        g                       y",  // row: 7  - 140  px
-        "y   s           g        g   s121    2222    1fffy",  // row: 8  - 160  px
-        "y               g        g   1 b     g sg    g s y",  // row: 9  - 180  px
-        "y       s       g        g   1       gs g    g   y",  // row: 10 - 200  px
-        "y               g        g   s  g    gs g    gs sy",  // row: 11 - 220  px
-        "y               g        g   2  g    g  g    g   y",  // row: 12 - 240  px
-        "y               g        g   2  g    g sg    g s y",  // row: 13 - 260  px
-        "y               g        g      g    g sg    g   y",  // row: 14 - 280  px
-        "y               g        g      g    gs g    gs sy",  // row: 15 - 300  px
-        "y               g        g   s  g    g  g    g   y",  // row: 16 - 320  px
-        "y               g        g   2  g    gs g    g s y",  // row: 17 - 340  px
-        "y               1ffffffff1   s  g    g sg    g   y",  // row: 18 - 360  px
-        "y                            1 bg    gs g    gs sy",  // row: 19 - 380  px
-        "y    s                       s  g    1111    g111y",  // row: 20 - 400  px
-        "y                                                y",  // row: 21 - 420  px
-        "y           s                                    y",  // row: 22 - 440  px
-        "y                                                y",  // row: 23 - 460  px
-        "y         s                     b                y",  // row: 24 - 480  px
-        "y                                                y",  // row: 25 - 500  px
-        "y                                                y",  // row: 26 - 520  px
-        "y   2ffffffffffff1    1ffff  ffffffffffffff2     y",  // row: 27 - 540  px
-        "y   g            g    g  b                 g     y",  // row: 28 - 560  px
-        "y   g  s1s1s     g    g   11111111111111   g     y",  // row: 29 - 580  px
-        "y   g  2s2s2     g    g   2            2   g     y",  // row: 30 - 600  px
-        "y   g  s1s1s     g    g   2   s     s  2         y",  // row: 31 - 620  px
-        "y   g            g    g   2            2         y",  // row: 32 - 640  px
-        "y   1ffffffffffff2    g   2            2   g     y",  // row: 33 - 660  px
-        "y b                   g   2    s       2   g     y",  // row: 34 - 680  px
-        "y           b         g   2            2   g     y",  // row: 35 - 700  px
-        "y                         2  s     s   2   g     y",  // row: 36 - 720  px
-        "22222           S         2            2   g     y",  // row: 37 - 740  px
-        "     221 1            g   11111111111111   g     y",  // row: 38 - 760  px
-        " 22    1 12           g         b          g     y",  // row: 39 - 780  px
-        "y  22112 1 2          g                    g     y",  // row: 40 - 800  px
-        "y      1 1  2         1fffffffffffff       g     y",  // row: 41 - 820  px
-        "y      1 12  2                          b  g     y",  // row: 42 - 840  px
-        "y          2  2                            g     y",  // row: 43 - 860  px
-        "y   s       2  2                    11111111     y",  // row: 44 - 880  px
-        "y            2  2                                y",  // row: 45 - 900  px
-        "y      s s    2  2    s                          y",  // row: 46 - 920  px
-        "y  b    s      2  2            b                 y",  // row: 47 - 940  px
-        "y      s s   s g   22                            y",  // row: 48 - 960  px
-        "y              g2    222222                      y",  // row: 49 - 980  px
-        "y11111111111111g22         2xxxxxxxxxxxxxxxxxxxxxy",  // row: 50 - 1000 px
+    // Each tile is 20 x 20 pixels, 
+    this.tilemap = [ // TODO: Currently an empty 50x50 tilemap
+        "                                                  ",  // row: 1  - 20   px
+        "                                                  ",  // row: 2  - 40   px
+        "                                                  ",  // row: 3  - 60   px
+        "                                                  ",  // row: 4  - 80   px
+        "                                                  ",  // row: 5  - 100  px
+        "                                                  ",  // row: 6  - 120  px
+        "                                                  ",  // row: 7  - 140  px
+        "                                                  ",  // row: 8  - 160  px
+        "                                                  ",  // row: 9  - 180  px
+        "                                                  ",  // row: 10 - 200  px
+        "                                                  ",  // row: 11 - 220  px
+        "                                                  ",  // row: 12 - 240  px
+        "                                                  ",  // row: 13 - 260  px
+        "                                                  ",  // row: 14 - 280  px
+        "                                                  ",  // row: 15 - 300  px
+        "                                                  ",  // row: 16 - 320  px
+        "                                                  ",  // row: 17 - 340  px
+        "                                                  ",  // row: 18 - 360  px
+        "                                                  ",  // row: 19 - 380  px
+        "                                                  ",  // row: 20 - 400  px
+        "                                                  ",  // row: 21 - 420  px
+        "                                                  ",  // row: 22 - 440  px
+        "                                                  ",  // row: 23 - 460  px
+        "                                                  ",  // row: 24 - 480  px
+        "                                                  ",  // row: 25 - 500  px
+        "                                                  ",  // row: 26 - 520  px
+        "                                                  ",  // row: 27 - 540  px
+        "                                                  ",  // row: 28 - 560  px
+        "                                                  ",  // row: 29 - 580  px
+        "                                                  ",  // row: 30 - 600  px
+        "                                                  ",  // row: 31 - 620  px
+        "                                                  ",  // row: 32 - 640  px
+        "                                                  ",  // row: 33 - 660  px
+        "                                                  ",  // row: 34 - 680  px
+        "                                                  ",  // row: 35 - 700  px
+        "                                                  ",  // row: 36 - 720  px
+        "                                                  ",  // row: 37 - 740  px
+        "                                                  ",  // row: 38 - 760  px
+        "                                                  ",  // row: 39 - 780  px
+        "                                                  ",  // row: 40 - 800  px
+        "                                                  ",  // row: 41 - 820  px
+        "                                                  ",  // row: 42 - 840  px
+        "                                                  ",  // row: 43 - 860  px
+        "                                                  ",  // row: 44 - 880  px
+        "                                                  ",  // row: 45 - 900  px
+        "                                                  ",  // row: 46 - 920  px
+        "                                                  ",  // row: 47 - 940  px
+        "                                                  ",  // row: 48 - 960  px
+        "                                                  ",  // row: 49 - 980  px
+        "                                                  ",  // row: 50 - 1000 px
     ];
     
     this.gameObjects = [];
@@ -537,106 +347,8 @@ gameObj.prototype.initialize = function() {
     this.enemyCount = this.enemies.length;  // Update the enemy count
 };
 
-GAME_INST.initialize();
-
-//var SWORD_COLLECTED = false;
-
-// Collision detection for the regular player
-playerObj.prototype.checkCollision = function() {
-    for (var i = 0; i < GAME_INST.gameObjects.length; i++) {
-        if (GAME_INST.gameObjects[i].collectable && !GAME_INST.gameObjects[i].collected) {
-            var xValid = (this.x < (GAME_INST.gameObjects[i].x + TS) && this.x > (GAME_INST.gameObjects[i].x - TS));
-            var yValid = (this.y < (GAME_INST.gameObjects[i].y + TS/2) && this.y > (GAME_INST.gameObjects[i].y - TS/2));
-            if (xValid && yValid) {
-                GAME_INST.gameObjects[i].collected = true;
-                if (GAME_INST.gameObjects[i].isSword) {
-                    GAME_INST.swordCollected = true;
-                }
-                else {  // Item is a set of bones
-                    GAME_INST.boneCount--;
-                    GAME_INST.score++;
-                }
-            }
-        }
-        else {
-            var xValid = (this.x < (GAME_INST.gameObjects[i].x + TS - 5) && this.x > (GAME_INST.gameObjects[i].x - TS + 5));
-            var yValid = (this.y > (GAME_INST.gameObjects[i].y - TS/2) && this.y < (GAME_INST.gameObjects[i].y + TS));
-            if (xValid && yValid && !GAME_INST.gameObjects[i].collectable) {
-                DISABLE.W = true;
-            }
-            yValid = (this.y < (GAME_INST.gameObjects[i].y + TS/2) && this.y > (GAME_INST.gameObjects[i].y - TS));
-            if (xValid && yValid && !GAME_INST.gameObjects[i].collectable) {
-                DISABLE.S = true;
-            }
-            xValid = (this.x === GAME_INST.gameObjects[i].x - TS);
-            yValid = (this.y < (GAME_INST.gameObjects[i].y + TS/2) && this.y > (GAME_INST.gameObjects[i].y - TS/2));
-            if (xValid && yValid && !GAME_INST.gameObjects[i].collectable) {
-                DISABLE.D = true;
-            }
-            xValid = (this.x === GAME_INST.gameObjects[i].x + TS);
-            if (xValid && yValid && !GAME_INST.gameObjects[i].collectable) {
-                DISABLE.A = true;
-            }
-        }
-    }
-    for (var i = 0; i < GAME_INST.enemies.length; i++) {
-        var xValid = (this.x < (GAME_INST.enemies[i].position.x + TS) && this.x > (GAME_INST.enemies[i].position.x - TS));
-        var yValid = (this.y < (GAME_INST.enemies[i].position.y + TS/2) && this.y > (GAME_INST.enemies[i].position.y - TS/2));
-        if (xValid && yValid) {
-            CURRENT_GAME_STATE = GameState_e.GAME_OVER_LOSE;
-        }
-    }
-};
-
-// Collision detection for the upgraded player
-playerUpgradedObj.prototype.checkCollision = function() {
-    for (var i = 0; i < GAME_INST.gameObjects.length; i++) {
-        if (GAME_INST.gameObjects[i].collectable && !GAME_INST.gameObjects[i].collected) {
-            var xValid = (this.x < (GAME_INST.gameObjects[i].x + TS) && this.x > (GAME_INST.gameObjects[i].x - TS));
-            var yValid = (this.y < (GAME_INST.gameObjects[i].y + TS/2) && this.y > (GAME_INST.gameObjects[i].y - TS/2));
-            if (xValid && yValid) {
-                GAME_INST.score += 2;
-                GAME_INST.boneCount--;
-                GAME_INST.gameObjects[i].collected = true;
-                // No sword detection needed as the sword has already been collected...
-            }
-        }
-        else {
-            var xValid = (this.x < (GAME_INST.gameObjects[i].x + TS - 5) && this.x > (GAME_INST.gameObjects[i].x - TS + 5));
-            var yValid = (this.y > (GAME_INST.gameObjects[i].y - TS/2) && this.y < (GAME_INST.gameObjects[i].y + TS));
-            if (xValid && yValid && !GAME_INST.gameObjects[i].collectable) {
-                DISABLE.W = true;
-            }
-            yValid = (this.y < (GAME_INST.gameObjects[i].y + TS/2) && this.y > (GAME_INST.gameObjects[i].y - TS));
-            if (xValid && yValid && !GAME_INST.gameObjects[i].collectable) {
-                DISABLE.S = true;
-            }
-            xValid = (this.x === GAME_INST.gameObjects[i].x - TS);
-            yValid = (this.y < (GAME_INST.gameObjects[i].y + TS/2) && this.y > (GAME_INST.gameObjects[i].y - TS/2));
-            if (xValid && yValid && !GAME_INST.gameObjects[i].collectable) {
-                DISABLE.D = true;
-            }
-            xValid = (this.x === GAME_INST.gameObjects[i].x + TS);
-            if (xValid && yValid && !GAME_INST.gameObjects[i].collectable) {
-                DISABLE.A = true;
-            }
-        }
-    }
-    if (GAME_INST.enemyCount > 0) {
-        for (var i = 0; i < GAME_INST.enemies.length; i++) {
-            if (!GAME_INST.enemies[i].defeated) {
-                var xValid = (this.x < (GAME_INST.enemies[i].position.x + TS) && this.x > (GAME_INST.enemies[i].position.x - TS));
-                var yValid = (this.y < (GAME_INST.enemies[i].position.y + TS/2) && this.y > (GAME_INST.enemies[i].position.y - TS/2));
-                if (xValid && yValid) {
-                    GAME_INST.score += 5;
-                    GAME_INST.enemyCount--;
-                    GAME_INST.enemies[i].defeated = true;
-                }
-            }
-        }
-    }
-};
-
+//GAME_INST.initialize();
+/*
 var pStartCoor = {
     X: 200,
     Y: 200,
@@ -661,7 +373,9 @@ var displayCredits = function() {
     text("Artwork by Alex Shammas", 20, 360);
     text("Code by Joey Rodgers", 20, 380);
 }
+*/
 
+/*
 gameObj.prototype.drawBackground = function() {
     image(GameScreens_t.BACKGROUND, this.xCoor, this.yCoor);
     for (var i = 0; i < GAME_INST.gameObjects.length; i++) {
@@ -675,6 +389,7 @@ gameObj.prototype.drawBackground = function() {
         }
     }
 };
+*/
 
 // Simple structure to track the current state of the mouse clicks
 var MouseState = {
@@ -689,137 +404,91 @@ var mouseReleased = function() {
     MouseState.PRESSED = 0;
 };
 
-// Functions to track the game state
-var CURRENT_GAME_STATE = GameState_e.START;
+// Initialize the game state to the start screen/main menu
+var CURRENT_GAME_STATE = GameState_e.START_SCREEN;
 
 var changeGameState = function(GameState) {
     CURRENT_GAME_STATE = GameState;
 };
 
-var player = playerOptions.BASIC;
 
+//var player = playerOptions.BASIC;
 var translationX, translationY;
+
+var animatedLoadTransition = function() {
+    _ms_delay = 100;
+    var i = 0;
+    for (; i <= SCREEN_WIDTH; i++) {
+        setTimeout( // Attempted a delay for the animation
+            function() {
+                pushMatrix();
+                translate(SCREEN_WIDTH - i, 0);
+                image(GameScreens_t.ANIMATION, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
+                popMatrix(); 
+            }, 
+            _ms_delay); // end setTimeout
+    }
+};
+
+//var drawBackground
+
+var drawHelpScreen = function() {
+    image(GameScreens_t.LEVEL_ONE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+}
+
+// Setup the FSM within this function
 var draw = function() {
     switch(CURRENT_GAME_STATE) {
-        case GameState_e.START:
+        case GameState_e.START_SCREEN:
             drawStartScreen();
-            if (MouseState.PRESSED && mouseX > 100 && mouseX < 310 && mouseY < 318 && mouseY > 292) {
-                changeGameState(GameState_e.GAME_IN_PROGRESS);
+            if (MouseState.PRESSED && mouseX < 195 && mouseX > 25 && mouseY < 120 && mouseY > 55) {
+                changeGameState(GameState_e.ANIMATED_LOAD_TRANSITION);
+                MouseState.PRESSED = 0;  // Force a click release
+            }
+            if (MouseState.PRESSED && mouseX < 128 && mouseX > 33 && mouseY < 205 && mouseY > 163) {
+                changeGameState(GameState_e.HELP_SCREEN);
                 MouseState.PRESSED = 0;  // Force a click release
             }
             break;
-        case GameState_e.GAME_IN_PROGRESS:
-            // drawGameBackground(GAME_INST.xCoor, GAME_INST.yCoor);
-            pushMatrix();
-            if (player.x >= 200 && player.x <= 800 && player.y >= -400 && player.y <= 200) {  // Case mid-map
-                translationX = (-player.x + pStartCoor.X);
-                translationY = (-player.y + pStartCoor.Y);
-                translate(translationX, translationY);
-            }
-            else if (player.y < -400 && player.x > 800) {  // Case top right corner of map
-                var x_offset = (player.x - 800);
-                var y_offset = (-400 - player.y);
-                translationX = (-player.x + pStartCoor.X + x_offset);
-                translationY = (-player.y + pStartCoor.Y - y_offset);
-                translate(translationX, translationY);
-            }
-            else if (player.y < -400 && player.x < 200) {  // Case top left corner of map
-                var x_offset = (player.x - 200);
-                var y_offset = (-400 - player.y);
-                translationX = (-player.x + pStartCoor.X + x_offset);
-                translationY = (-player.y + pStartCoor.Y - y_offset);
-                translate(translationX, translationY);
-            }
-            else if (player.y > 200 && player.x > 800) {  // Case bottom right corner of map
-                var x_offset = (player.x - 800);
-                var y_offset = (200 - player.y);
-                translationX = (-player.x + pStartCoor.X + x_offset);
-                translationY = (-player.y + pStartCoor.Y - y_offset);
-                translate(translationX, translationY);
-            }
-            else if (player.y > 200 && player.x < 200) {  // Case bottom left corner of map
-                var x_offset = (player.x - 200);
-                var y_offset = (200 - player.y);
-                translationX = (-player.x + pStartCoor.X + x_offset);
-                translationY = (-player.y + pStartCoor.Y - y_offset);
-                translate(translationX, translationY);
-            }
-            else if (player.x > 800) {
-                var x_offset = (player.x - 800);
-                translationX = (-player.x + pStartCoor.X + x_offset);
-                translationY = (-player.y + pStartCoor.Y);
-                translate(translationX, translationY);
-            }
-            else if (player.x < 200) {
-                var x_offset = (player.x - 200);
-                translationX = (-player.x + pStartCoor.X + x_offset);
-                translationY = (-player.y + pStartCoor.Y);
-                translate(translationX, translationY);
-            }
-            else if (player.y < -400) {
-                var y_offset = (-400 - player.y);
-                translationX = (-player.x + pStartCoor.X);
-                translationY = (-player.y + pStartCoor.Y - y_offset);
-                translate(translationX, translationY);
-            }
-            else if (player.y > 200) {
-                var y_offset = (200 - player.y);
-                translationX = (-player.x + pStartCoor.X);
-                translationY = (-player.y + pStartCoor.Y - y_offset);
-                translate(translationX, translationY);
-            }
-
-            GAME_INST.drawBackground();
-
-            for (var i = 0; i < GAME_INST.enemies.length; i++) {
-                if (!GAME_INST.enemies[i].defeated) {
-                    GAME_INST.enemies[i].draw();
-                    // GAME_INST.enemies[i].seek();
-                    GAME_INST.enemies[i].wander();
-                }
-            }
-            
-            player.checkCollision();
-            player.draw();
-            
-            // Reset the Key States
-            DISABLE.W = false;
-            DISABLE.A = false;
-            DISABLE.S = false;
-            DISABLE.D = false;
-
-            if (GAME_INST.swordCollected) {  // Upgrade the player to the more advanced samurai
-                player = playerOptions.UPGRADED;  
-            }
-            
-            if (GAME_INST.boneCount === 0) {  // All bones have been collected (WIN CONDITION)
-                CURRENT_GAME_STATE = GameState_e.GAME_OVER_WIN;
-            }
-
-            popMatrix();
+        case GameState_e.ANIMATED_LOAD_TRANSITION:
+            println("Some animation to load level one for a smoother transition.");
+            animatedLoadTransition();
+            changeGameState(GameState_e.LEVEL_ONE);
             break;
-        case GameState_e.GAME_OVER_LOSE:
-            drawLosingEndScreen();
-            displayScore();
-            displayCredits();
-            if (MouseState.PRESSED) {
-                GAME_INST.initialize();  // Reinitialize the game state for the next game instance/iteration
-                changeGameState(GameState_e.START);
-            }
+        case GameState_e.LEVEL_ONE:
+            println("TODO: LEVEL_ONE");
+            changeGameState(GameState_e.DEFAULT);
             break;
-        case GameState_e.GAME_OVER_WIN:
-            drawWinningEndScreen();
-            displayScore();
-            displayCredits();
-            if (MouseState.PRESSED) {
-                GAME_INST.initialize();
-                changeGameState(GameState_e.START);
-            }
+        case GameState_e.LEVEL_TWO:
+            println("TODO: LEVEL_TWO");
+            break;
+        case GameState_e.LEVEL_THREE:
+            println("TODO: LEVEL_THREE");
+            break;
+        case GameState_e.HELP_SCREEN:
+            println("TODO: HELP_SCREEN");
+            drawHelpScreen();
+            break;
+        case GameState_e.CREDITS:
+            println("TODO: CREDITS");
+            break;
+        case GameState_e.ANIMATED_LOSE_TRANSITION:
+            println("TODO: ANIMATED_LOSE_TRANSITION");
+            break;
+        case GameState_e.LOSE_SCREEN:
+            println("TODO: LOSE_SCREEN");
+            break;
+        case GameState_e.ANIMATED_WIN_TRANSITION:
+            println("TODO: ANIMATED_WIN_TRANSITION");
+            break;
+        case GameState_e.WIN_SCREEN:
+            println("TODO: WIN_SCREEN");
             break;
         default:
-            console.debug("Error: Default game state hit!");
-            println("Error: Default game state hit!");
-    }
+            // console.debug("Error: Default game state hit!");
+            // println("Error: Default game state hit!");
+            break;
+    } // End switch
 };
 
 
