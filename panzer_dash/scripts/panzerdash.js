@@ -83,6 +83,10 @@ var GameScreens_t = {
     START_SCREEN: loadImage('../assets/main_menu.jpg'),
     ANIMATION: loadImage('../assets/bg_scene1.png'),
     LEVEL_ONE: loadImage('../assets/bg_scene3.png'),
+    ENEMY_ONE: loadImage('../assets/enemy1.png'),
+    ENEMY_TWO: loadImage('../assets/enemy2.png'),
+    ENEMY_THREE: loadImage('../assets/enemy3.png'),
+    ENEMY_FOUR: loadImage('../assets/enemy4.png'),
 };
 
 var Assets_t = {
@@ -434,7 +438,23 @@ var animatedLoadTransition = function() {
 
 var drawHelpScreen = function() {
     image(GameScreens_t.LEVEL_ONE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-}
+};
+
+var drawEnemy1 = function() {
+    image(GameScreens_t.ENEMY_ONE, 0, 0, 20, 20);
+};
+
+var drawEnemy2 = function() {
+    image(GameScreens_t.ENEMY_TWO, 0, 0, 20, 20);
+};
+
+var drawEnemy3 = function() {
+    image(GameScreens_t.ENEMY_THREE, 0, 0, 20, 20);
+};
+
+var drawEnemy4 = function() {
+    image(GameScreens_t.ENEMY_FOUR, 0, 0, 20, 20);
+};
 
 // Setup the FSM within this function
 var draw = function() {
