@@ -137,17 +137,23 @@ var tankObj = function(x, y, s) {
 
 tankObj.prototype.draw = function() {
     var self = this;
-    if (wPressed() && DISABLE.W === false) {
+    if (DISABLE.W === false) {
         self.y -= self.speed;
     }
-    if (sPressed() && DISABLE.S === false) {
+    if (DISABLE.S === false) {
         self.y += self.speed;  
     }
-    if (dPressed() && DISABLE.D === false) {
+    if (DISABLE.D === false) {
         self.x += self.speed;
     }
-    if (aPressed() && DISABLE.A === false) {
+    if (DISABLE.A === false) {
         self.x -= self.speed;
+    }
+    if (DISABLE.SPACE === false) {
+        self.speed = 5;
+    }
+    else {
+        self.speed = 3;
     }
     image(Assets_t.PANZER, self.x, self.y, TS, TS);
 };
@@ -161,14 +167,23 @@ var tankUpgradedObj = function(x, y, s) {
 
 tankUpgradedObj.prototype.draw = function() {
     var self = this;
-    if (sPressed() && DISABLE.S === false) {
+    if (DISABLE.W === false) {
+        self.y -= self.speed;
+    }
+    if (DISABLE.S === false) {
         self.y += self.speed;  
     }
-    if (dPressed() && DISABLE.D === false) {
+    if (DISABLE.D === false) {
         self.x += self.speed;
     }
-    if (aPressed() && DISABLE.A === false) {
+    if (DISABLE.A === false) {
         self.x -= self.speed;
+    }
+    if (DISABLE.SPACE === false) {
+        self.speed = 5;
+    }
+    else {
+        self.speed = 3;
     }
     image(Assets_t.PANZER, this.x, this.y, TS, TS);
     image(Assets_t.PANZER_GUN, this.x, this.y + 1, TS/2, TS/2);
@@ -210,10 +225,40 @@ var keyState = {
 
 var keyPressed = function() {
     keyState.PRESSED = 1;
+    if (key.toString() === 'w') {
+        DISABLE.W = false;
+    }
+    if (key.toString() === 'a') {
+        DISABLE.A = false;
+    }
+    if (key.toString() === 's') {
+        DISABLE.S = false;
+    }
+    if (key.toString() === 'd') {
+        DISABLE.D = false;
+    }
+    if (parseInt(key, 10) === 32) {
+        DISABLE.SPACE = false;
+    }
 };
 
 var keyReleased = function() {
     keyState.PRESSED = 0;
+    if (key.toString() === 'w') {
+        DISABLE.W = true;
+    }
+    if (key.toString() === 'a') {
+        DISABLE.A = true;
+    }
+    if (key.toString() === 's') {
+        DISABLE.S = true;
+    }
+    if (key.toString() === 'd') {
+        DISABLE.D = true;
+    }
+    if (parseInt(key, 10) === 32) {
+        DISABLE.SPACE = true;
+    }
 };
 
 var wPressed = function() {
@@ -232,15 +277,16 @@ var aPressed = function() {
     return (keyState.PRESSED && key.toString() === 'a');  
 };
 
-// var spacePressed = function() {
-//     return (keyState.PRESSED && key.toString() === '')
-// }
+var spacePressed = function() {
+    return (keyState.PRESSED && parseInt(key, 10) === 32);
+}
 
 var DISABLE = {
-    W: false,
-    A: false,
-    S: false,
-    D: false,
+    W: true,
+    A: true,
+    S: true,
+    D: true,
+    SPACE: true,
 };
 
 var prevTime = 0;
@@ -497,7 +543,10 @@ var drawHelpScreen = function() {
 
 var l1 = -1200;
 
+var tankSpeed = 3;
 var panzer = createTank(200, 200, 3, TankOptions_e.BASIC);
+var upgradeCollected = false;
+var tankUpgraded = false;
 
 // Setup the FSM within this function
 var draw = function() {
@@ -525,6 +574,9 @@ var draw = function() {
                 l1 = -1200;
             }
             panzer.draw();
+            if (upgradeCollected && !tankUpgraded) {
+                panzer = createTank(panzer.x, panzer.y, tankSpeed, TankOptions_e.UPGRADED);
+            }
             //println("TODO: LEVEL_ONE");
             //changeGameState(GameState_e.DEFAULT);
             break;
