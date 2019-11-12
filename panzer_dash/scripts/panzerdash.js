@@ -32,7 +32,7 @@ frameRate(60);
 
 //ProgramCodeGoesHere
 
-var TS = 20;  // Global var/switch to enforce a certain pixel count for height and width per tile
+var TS = 40;  // Global var/switch to enforce a certain pixel count for height and width per tile
 
 // Preload necessary game assets by using Processing's preload directive
 /*
@@ -66,22 +66,6 @@ var TS = 20;  // Global var/switch to enforce a certain pixel count for height a
     crisp='true';
 */
 
-// Enum for each game state in the PanzerDash FSM diagram
-var GameState_e = {
-    START_SCREEN: 0, // Start Screen
-    LEVEL_ONE: 1,
-    LEVEL_TWO: 2, 
-    LEVEL_THREE: 3,
-    WIN_SCREEN: 4,
-    LOSE_SCREEN: 5,
-    CREDITS: 6,
-    HELP_SCREEN: 7,
-    ANIMATED_LOAD_TRANSITION: 8,
-    ANIMATED_WIN_TRANSITION: 9,
-    ANIMATED_LOSE_TRANSITION: 10,
-    DEFAULT: 11,
-};
-
 /*
 var audio = new Audio("https://s3.amazonaws.com/audio-experiments/examples/elon_mono.wav");
 
@@ -99,16 +83,30 @@ function cancelAudio() {
 }
 */
 
+// Enum for each game state in the PanzerDash FSM diagram
+var GameState_e = {
+    START_SCREEN: 0, // Start Screen
+    LEVEL_ONE: 1,
+    LEVEL_TWO: 2, 
+    LEVEL_THREE: 3,
+    WIN_SCREEN: 4,
+    LOSE_SCREEN: 5,
+    CREDITS: 6,
+    HELP_SCREEN: 7,
+    ANIMATED_LOAD_TRANSITION: 8,
+    ANIMATED_WIN_TRANSITION: 9,
+    ANIMATED_LOSE_TRANSITION: 10,
+    DEFAULT: 11,
+};
+
 // Created a struct like variable to store the different game screens
 var GameScreens_t = {
     START_SCREEN: [
         loadImage('../assets/main_menu1.jpg'),
         loadImage('../assets/main_menu2.jpg'),
         loadImage('../assets/main_menu3.jpg'),
-        loadImage('../assets/main_menu4.jpg')
+        loadImage('../assets/main_menu4.jpg'),
     ],
-    //START_SCREEN: loadImage('../assets/menu_animation.mp4'),
-    //START_SCREEN: createVideo('../assets/menu_animation.mp4'),
     ANIMATION: loadImage('../assets/bg_scene1.png'),
     LEVEL_ONE: loadImage('../assets/level_one_bg.jpg'),
     
@@ -119,21 +117,61 @@ var GameScreens_t = {
 
 var Assets_t = {
     // Load assets in here
-    PANZER: loadImage('../assets/')
+    PANZER: loadImage('../assets/tank_body.png'),
+    PANZER_GUN: loadImage('../assets/tank_gun.png'),
     ENEMY_ONE: loadImage('../assets/enemy1.png'),
-}
+};
+
+var TankOptions_e = {
+    BASIC: 0,
+    UPGRADED: 1,
+};
 
 // This is the main character (i.e. the samurai)
-var playerObj = function(x, y, s) {
+var tankObj = function(x, y, s) {
     this.x = x;
     this.y = y;
+    //this.position = new PVector(x, y);
     this.speed = s;
 };
 
-var playerUpgradedObj = function(x, y, s) {
+tankObj.prototype.draw = function() {
+    var self = this;
+    if (wPressed() && DISABLE.W === false) {
+        self.y -= self.speed;
+    }
+    if (sPressed() && DISABLE.S === false) {
+        self.y += self.speed;  
+    }
+    if (dPressed() && DISABLE.D === false) {
+        self.x += self.speed;
+    }
+    if (aPressed() && DISABLE.A === false) {
+        self.x -= self.speed;
+    }
+    image(Assets_t.PANZER, self.x, self.y, TS, TS);
+};
+
+var tankUpgradedObj = function(x, y, s) {
     this.x = x;
     this.y = y;
+    // this.position = new PVector(x, y);
     this.speed = s;
+};
+
+tankUpgradedObj.prototype.draw = function() {
+    var self = this;
+    if (sPressed() && DISABLE.S === false) {
+        self.y += self.speed;  
+    }
+    if (dPressed() && DISABLE.D === false) {
+        self.x += self.speed;
+    }
+    if (aPressed() && DISABLE.A === false) {
+        self.x -= self.speed;
+    }
+    image(Assets_t.PANZER, this.x, this.y, TS, TS);
+    image(Assets_t.PANZER_GUN, this.x, this.y + 1, TS/2, TS/2);
 };
 
 var enemy1Obj = function(x, y) {
@@ -193,6 +231,10 @@ var dPressed = function() {
 var aPressed = function() {
     return (keyState.PRESSED && key.toString() === 'a');  
 };
+
+// var spacePressed = function() {
+//     return (keyState.PRESSED && key.toString() === '')
+// }
 
 var DISABLE = {
     W: false,
@@ -298,7 +340,6 @@ gameObj.prototype.initialize = function() {
             switch (this.tilemap[i][j]) {
                 case 't':
                     this.gameObjects.push(new enemy1Obj(j*TS + x_offset, i*TS + MAP_OFFSET_Y));
-                    //this.boneCount++;
                     break;
             }
         }
@@ -333,14 +374,21 @@ var displayCredits = function() {
 }
 */
 
+var createTank = function(x, y, s, tankType) {
+    if (tankType === TankOptions_e.BASIC) {
+        return new tankObj(x, y, s);
+    }
+    else if (tankType === TankOptions_e.UPGRADED) {
+        return new tankUpgradedObj(x, y, s);
+    }
+};
+
 gameObj.prototype.drawLevelOne = function(y) {
     image(GameScreens_t.LEVEL_ONE, this.xCoor, this.yCoor + y);
     for (var i = 0; i < GAME_INST.gameObjects.length; i++) {
         GAME_INST.gameObjects[i].draw();
     }
 };
-
-
 
 // Simple structure to track the current state of the mouse clicks
 var MouseState = {
@@ -386,68 +434,70 @@ var drawHelpScreen = function() {
     image(GameScreens_t.LEVEL_ONE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 };
 
-var drawEnemy1 = function() {
-    image(GameScreens_t.ENEMY_ONE, 30, 10, 60, 60);
-    fill(255, 255, 0);
-    text("Enemy One", 30, 100);
-};
+// var drawEnemy1 = function() {
+//     image(GameScreens_t.ENEMY_ONE, 30, 10, 60, 60);
+//     fill(255, 255, 0);
+//     text("Enemy One", 30, 100);
+// };
 
-var drawEnemy2 = function() {
-    image(GameScreens_t.ENEMY_TWO, 160, 10, 60, 60);
-    fill(255, 255, 0);
-    text("Enemy Two", 160, 100);
-};
+// var drawEnemy2 = function() {
+//     image(GameScreens_t.ENEMY_TWO, 160, 10, 60, 60);
+//     fill(255, 255, 0);
+//     text("Enemy Two", 160, 100);
+// };
 
-var drawEnemy3 = function() {
-    image(GameScreens_t.ENEMY_THREE, 280, 10, 60, 60);
-    fill(255, 255, 0);
-    text("Enemy Three", 280, 100);
-};
+// var drawEnemy3 = function() {
+//     image(GameScreens_t.ENEMY_THREE, 280, 10, 60, 60);
+//     fill(255, 255, 0);
+//     text("Enemy Three", 280, 100);
+// };
 
-var drawEnemy4 = function() {
-    image(GameScreens_t.ENEMY_FOUR, 400, 10, 60, 60);
-    fill(255, 255, 0);
-    text("Enemy Four", 400, 100);
-};
+// var drawEnemy4 = function() {
+//     image(GameScreens_t.ENEMY_FOUR, 400, 10, 60, 60);
+//     fill(255, 255, 0);
+//     text("Enemy Four", 400, 100);
+// };
 
-var drawTank = function() {
-    fill(45, 148, 22);
-    ellipse(120, 470, 80, 20);
-    noStroke();
-    ellipse(120, 450, 80, 40);
-    rect(80, 410, 50, 40);
-    fill(255, 255, 255);
-    rect(90, 420, 30, 20);
-    fill(0,0,0);
-    ellipse(100, 470, 15, 15);
-    ellipse(120, 470, 15, 15);
-    ellipse(140, 470, 15, 15);
-    rect(95, 425, 20, 10);
-    fill(150, 102, 30)
-    rect(130, 440, 10, 10);
-    fill(255, 255, 255);
-    text("The enemies as listed above are the\n different" +
-    "levels of difficulty. The tank\n as shown below is one of " +
-    "three different\n characters to play!", 180, 330);
-}
+// var drawTank = function() {
+//     fill(45, 148, 22);
+//     ellipse(120, 470, 80, 20);
+//     noStroke();
+//     ellipse(120, 450, 80, 40);
+//     rect(80, 410, 50, 40);
+//     fill(255, 255, 255);
+//     rect(90, 420, 30, 20);
+//     fill(0,0,0);
+//     ellipse(100, 470, 15, 15);
+//     ellipse(120, 470, 15, 15);
+//     ellipse(140, 470, 15, 15);
+//     rect(95, 425, 20, 10);
+//     fill(150, 102, 30)
+//     rect(130, 440, 10, 10);
+//     fill(255, 255, 255);
+//     text("The enemies as listed above are the\n different" +
+//     "levels of difficulty. The tank\n as shown below is one of " +
+//     "three different\n characters to play!", 180, 330);
+// }
 
-var drawInstructions = function() {
-    fill(10, 5, 153);
-    text("Objective of Game:\n" +
-    "While trying to get to the end of the battlefield,\n" +
-    "you are going to be doging several obstacles\n" +
-    "by doing special and cool maneuvers. With\n every" +
-    "level and the farther you get, the more\n obstancles" +
-    "appear in your path! Each enemy\n has a special attack" +
-    "that they will perform to\n stop you from completing the" +
-    "course! And if\n that was not hard enough before you can\n" +
-    "cross the finish line, you will have to defeat\n the Big Bad" +
-    "Boss. Throughout the game you\n can purchase weapons that will " +
-    "help defend\n youself. The rewards are high, but the road\n to victory" +
-    "is a long one. Take it if you dare!!", 170, 70);
-}
+// var drawInstructions = function() {
+//     fill(10, 5, 153);
+//     text("Objective of Game:\n" +
+//     "While trying to get to the end of the battlefield,\n" +
+//     "you are going to be doging several obstacles\n" +
+//     "by doing special and cool maneuvers. With\n every" +
+//     "level and the farther you get, the more\n obstancles" +
+//     "appear in your path! Each enemy\n has a special attack" +
+//     "that they will perform to\n stop you from completing the" +
+//     "course! And if\n that was not hard enough before you can\n" +
+//     "cross the finish line, you will have to defeat\n the Big Bad" +
+//     "Boss. Throughout the game you\n can purchase weapons that will " +
+//     "help defend\n youself. The rewards are high, but the road\n to victory" +
+//     "is a long one. Take it if you dare!!", 170, 70);
+// }
 
 var l1 = -1200;
+
+var panzer = createTank(200, 200, 3, TankOptions_e.BASIC);
 
 // Setup the FSM within this function
 var draw = function() {
@@ -465,7 +515,7 @@ var draw = function() {
             break;
         case GameState_e.ANIMATED_LOAD_TRANSITION:
             println("Some animation to load level one for a smoother transition.");
-            animatedLoadTransition();
+            //animatedLoadTransition();
             changeGameState(GameState_e.LEVEL_ONE);
             break;
         case GameState_e.LEVEL_ONE:
@@ -474,6 +524,7 @@ var draw = function() {
             if (l1 > 800) {
                 l1 = -1200;
             }
+            panzer.draw();
             //println("TODO: LEVEL_ONE");
             //changeGameState(GameState_e.DEFAULT);
             break;
@@ -484,7 +535,6 @@ var draw = function() {
             println("TODO: LEVEL_THREE");
             break;
         case GameState_e.HELP_SCREEN:
-            println("TODO: HELP_SCREEN");
             drawHelpScreen();
             drawInstructions();
             break;
@@ -504,11 +554,11 @@ var draw = function() {
             println("TODO: WIN_SCREEN");
             break;
         default:
-            drawEnemy1();
-            drawEnemy2();
-            drawEnemy3();
-            drawEnemy4();
-            drawTank();
+            // drawEnemy1();
+            // drawEnemy2();
+            // drawEnemy3();
+            // drawEnemy4();
+            // drawTank();
             // console.debug("Error: Default game state hit!");
             // println("Error: Default game state hit!");
             break;
