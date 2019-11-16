@@ -26,13 +26,15 @@
 var SCREEN_WIDTH = 800;
 var SCREEN_HEIGHT = 600;
 
-var sketchProc=function(processingInstance){ with (processingInstance){
+var sketchProc=function(processingInstance){ with (processingInstance) {
 size(SCREEN_WIDTH, SCREEN_HEIGHT); 
 frameRate(60);
 
 //ProgramCodeGoesHere
 
-var TS = 40;  // Global var/switch to enforce a certain pixel count for height and width per tile
+// Global var/switch to enforce a certain pixel count for height and width per tile
+var TILE_HEIGHT = 80; 
+var TILE_WIDTH = TILE_HEIGHT * SCREEN_HEIGHT / SCREEN_WIDTH;  // Keep proportions in line with aspect ratio 
 
 // Preload necessary game assets by using Processing's preload directive
 /*
@@ -48,21 +50,6 @@ var TS = 40;  // Global var/switch to enforce a certain pixel count for height a
         '../assets/bones.png',
         '../assets/enemy1.png',
         '../assets/enemy2.png',
-        '../assets/map.png',
-        '../assets/obj_fence_x.png',
-        '../assets/obj_fence_y.png',
-        '../assets/obj_statue.png',
-        '../assets/obj_stone1.png',
-        '../assets/obj_stone2.png',
-        '../assets/obj_torch.png',
-        '../assets/obj_wall_bottom.png',
-        '../assets/obj_wall_l.png',
-        '../assets/obj_wall_top.png',
-        '../assets/obj_wall_x.png',
-        '../assets/obj_wall_y.png',
-        '../assets/player_upgraded.png',
-        '../assets/player.png',
-        '../assets/sword.png';
     crisp='true';
 */
 
@@ -96,7 +83,9 @@ var GameState_e = {
     ANIMATED_LOAD_TRANSITION: 8,
     ANIMATED_WIN_TRANSITION: 9,
     ANIMATED_LOSE_TRANSITION: 10,
-    DEFAULT: 11,
+    ANIMATED_HELP_TRANSITION: 11,
+    ANIMATED_MENU_TRANSITION: 12, 
+    DEFAULT: 13,
 };
 
 // Created a struct like variable to store the different game screens
@@ -107,19 +96,31 @@ var GameScreens_t = {
         loadImage('../assets/main_menu3.jpg'),
         loadImage('../assets/main_menu4.jpg'),
     ],
-    ANIMATION: loadImage('../assets/bg_scene1.png'),
-    LEVEL_ONE: loadImage('../assets/level_one_bg.jpg'),
-    
-    ENEMY_TWO: loadImage('../assets/enemy2.png'),
-    ENEMY_THREE: loadImage('../assets/enemy3.png'),
-    ENEMY_FOUR: loadImage('../assets/enemy4.png'),
+    HELP_SCREEN_TRANSITIONS: [
+        loadImage('../assets/help_transition1.jpg'),
+        loadImage('../assets/help_transition2.jpg'),
+        loadImage('../assets/help_transition3.jpg'),
+        loadImage('../assets/help_transition4.jpg'),
+        loadImage('../assets/help_transition5.jpg'),
+        loadImage('../assets/help_transition6.jpg'),
+    ],
+    HELP_SCREEN:              loadImage('../assets/help_screen.jpg'),
+    HELP_SCREEN_BACK_BUTTON:  loadImage('../assets/back_button.png'),
+    LEVEL_ONE:                loadImage('../assets/level_one_bg.jpg'),
+    // LEVEL_TWO:  TODO:
+    // LEVEL_THREE:  TODO:
 };
 
 var Assets_t = {
-    // Load assets in here
-    PANZER: loadImage('../assets/tank_body.png'),
-    PANZER_GUN: loadImage('../assets/tank_gun.png'),
-    ENEMY_ONE: loadImage('../assets/enemy1.png'),
+    // Load other assets in here
+    PANZER:        loadImage('../assets/tank_body.png'),
+    PANZER_GUN:    loadImage('../assets/tank_gun.png'),
+    ENEMY1_BASE:   loadImage('../assets/enemy1_base.png'),
+    ENEMY_FRONT:   loadImage('../assets/enemy1_front.png'),
+    ENEMY2_BASE:   loadImage('../assets/enemy2_base.png'),
+    ENEMY_TURRET:  loadImage('../assets/enemy2_turret.png'),
+    BOSS1_BASE:    loadImage('../assets/level1_boss_base.png'),
+    BOSS1_FRONT:   loadImage('../assets/level1_boss_front.png'),
 };
 
 var TankOptions_e = {
@@ -127,98 +128,20 @@ var TankOptions_e = {
     UPGRADED: 1,
 };
 
-// This is the main character (i.e. the samurai)
-var tankObj = function(x, y, s) {
-    this.x = x;
-    this.y = y;
-    //this.position = new PVector(x, y);
-    this.speed = s;
+var ObjectType_e = {
+    BASIC: 0,
+    COLLECTABLE: 1,
+    TANK: 2,
+    ENEMY: 3,
 };
 
-tankObj.prototype.draw = function() {
-    var self = this;
-    if (DISABLE.W === false) {
-        self.y -= self.speed;
-    }
-    if (DISABLE.S === false) {
-        self.y += self.speed;  
-    }
-    if (DISABLE.D === false) {
-        self.x += self.speed;
-    }
-    if (DISABLE.A === false) {
-        self.x -= self.speed;
-    }
-    if (DISABLE.SPACE === false) {
-        self.speed = 5;
-    }
-    else {
-        self.speed = 3;
-    }
-    image(Assets_t.PANZER, self.x, self.y, TS, TS);
+var HelpSpeedOptions_e = {
+    FAST: 30,
+    MEDIUM: 60,
+    SLOW: 90,
 };
 
-var tankUpgradedObj = function(x, y, s) {
-    this.x = x;
-    this.y = y;
-    // this.position = new PVector(x, y);
-    this.speed = s;
-};
-
-tankUpgradedObj.prototype.draw = function() {
-    var self = this;
-    if (DISABLE.W === false) {
-        self.y -= self.speed;
-    }
-    if (DISABLE.S === false) {
-        self.y += self.speed;  
-    }
-    if (DISABLE.D === false) {
-        self.x += self.speed;
-    }
-    if (DISABLE.A === false) {
-        self.x -= self.speed;
-    }
-    if (DISABLE.SPACE === false) {
-        self.speed = 5;
-    }
-    else {
-        self.speed = 3;
-    }
-    image(Assets_t.PANZER, this.x, this.y, TS, TS);
-    image(Assets_t.PANZER_GUN, this.x, this.y + 1, TS/2, TS/2);
-};
-
-var enemy1Obj = function(x, y) {
-    this.position = new PVector(x, y);
-    this.step = new PVector(0, 0);
-    //this.speed = s;
-    this.wanderAngle = random(0, 180);
-    this.wanderDistance = random(0, 100);
-    this.pursueTarget = new PVector(0, 0);
-    this.defeated = false;
-};
-
-enemy1Obj.prototype.draw = function() {
-    image(Assets_t.ENEMY_ONE, this.position.x, this.position.y, TS, TS);
-};
-
-var enemy2Obj = function(x, y, s) {
-    this.x = x;
-    this.position = new PVector(x, y);
-    this.step = new PVector(0, 0);
-    //this.speed = s;
-    this.wanderAngle = random(0, 180);
-    this.wanderDistance = random(0, 100);
-    this.pursueTarget = new PVector(0, 0);
-    this.defeated = false;
-};
-
-/*
- * Asset object definitions should go below here
- */
-
-// Define key press state structure and related functions
+// -------------- Define key press state structure and related functions ----------------
 var keyState = {
     PRESSED: 0,
 };
@@ -240,6 +163,18 @@ var keyPressed = function() {
     if (parseInt(key, 10) === 32) {
         DISABLE.SPACE = false;
     }
+    if (keyCode === UP) {
+        DISABLE.UP = false;
+    }
+    if (keyCode === DOWN) {
+        DISABLE.DOWN = false;
+    }
+    if (keyCode === LEFT) {
+        DISABLE.LEFT = false;
+    }
+    if (keyCode === RIGHT) {
+        DISABLE.RIGHT = false;
+    }
 };
 
 var keyReleased = function() {
@@ -258,6 +193,20 @@ var keyReleased = function() {
     }
     if (parseInt(key, 10) === 32) {
         DISABLE.SPACE = true;
+    }
+    if (keyCode === UP) {
+        DISABLE.UP = true;
+    }
+    if (keyCode === DOWN) {
+        DISABLE.DOWN = true;
+    }
+    if (keyCode === LEFT) {
+        //println("Left released!!");
+        DISABLE.LEFT = true;
+    }
+    if (keyCode === RIGHT) {
+        //println("Right released!!");
+        DISABLE.RIGHT = true;
     }
 };
 
@@ -282,11 +231,361 @@ var spacePressed = function() {
 }
 
 var DISABLE = {
-    W: true,
-    A: true,
-    S: true,
-    D: true,
+    W:     true,
+    A:     true,
+    S:     true,
+    D:     true,
     SPACE: true,
+    UP:    true,
+    DOWN:  true,
+    LEFT:  true,
+    RIGHT: true,
+};
+
+// ---------------------- End key press functions --------------------
+
+var bulletObj = function(x, y, s) {
+    this.position = new PVector(x, y);
+    this.w = 4;  // width
+    this.l = 7;  // length
+    this.speed = new PVector(0, s);
+    this.damage = 1;
+};
+
+bulletObj.prototype.draw = function() {
+    noStroke();
+    fill(31, 31, 24);
+    rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
+    ellipse(this.position.x, this.position.y, this.w, this.w);
+    this.position.add(this.speed);
+};
+
+var laserObj = function(x, y) {
+    this.x = x;
+    this.y = y;
+    this.startWidth = 1;
+    this.length = -SCREEN_WIDTH;
+    this.damage = 5;
+};
+
+laserObj.prototype.draw = function(timeOn) {
+    fill(92, 227, 13);  // laser color
+    noStroke();
+    rect(this.x - (this.startWidth * timeOn) / 2, this.y + 4, this.startWidth * timeOn, this.length);
+};
+
+var tankShellObj = function(x, y, s) {
+    this.position = new PVector(x, y);
+    this.w = 4;  // width
+    this.l = 8;  // length
+    this.speed = new PVector(0, s);
+};
+
+tankShellObj.prototype.draw = function(gunAngle) {
+
+    fill(160, 160, 160);
+    rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
+
+    fill(153, 23, 55);
+    ellipse(this.position.x, this.position.y + this.l / 2, this.w, this.w);
+
+    fill(186, 140, 0);
+    ellipse(this.position.x, this.position.y - this.l / 2, this.w, this.w);
+
+    this.position.add(this.speed);
+};
+
+// This is the main character (i.e. the samurai)
+var tankObj = function(x, y, s) {
+    this.x = x;
+    this.y = y;
+    this.speed = s;
+    this.bullets = [];
+    this.bulletSpeed = -6;
+    this.fireRate = 5;
+    this.autoFireEnabled = false;
+    this.health = 1000;
+    this.type = ObjectType_e.TANK;
+};
+
+tankObj.prototype.draw = function(frameCount) {
+    var self = this;
+
+    if (DISABLE.W === false) { // } && self.y > 0) {
+        self.y -= self.speed;
+    }
+    if (DISABLE.S === false) { // && self.y < SCREEN_HEIGHT - TS) {
+        self.y += self.speed;  
+    }
+    if (DISABLE.D === false && self.x < SCREEN_WIDTH - TILE_WIDTH) {
+        self.x += self.speed;
+    }
+    if (DISABLE.A === false && self.x > 0) {
+        self.x -= self.speed;
+    }
+    if (DISABLE.SPACE === false) {
+        self.speed = 5;
+    }
+    else {
+        self.speed = 2;
+    }
+
+    if (!DISABLE.DOWN) {
+        this.autoFireEnabled = !this.autoFireEnabled;  // toggle the auto fire enabled option
+        this.autoFireToggled = true;
+    }
+    if (!DISABLE.UP || this.autoFireEnabled) {  // Fire the gun
+        if (frameCount % this.fireRate === 0) {
+            this.bullets.push(new bulletObj(this.x + TILE_WIDTH * 2 / 3, this.y, this.bulletSpeed));
+        }   
+    }
+
+    if (frameCount % 5 === 0) { // TODO: Better implementation of the autofire delayed needed
+        this.autoFireToggled = false;
+    }
+
+    image(Assets_t.PANZER, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+    for (var i = 0; i < this.bullets.length; i++) {
+        this.bullets[i].draw();
+    }
+};
+
+/*
+ * Pass in an array containing the collectable objects within the game tilemap
+ */
+var checkCollisionWithUpgrade = function(tank, collectableObjects) {
+    for (var i = 0; i < collectableObjects.length; i++) {
+        var within_x = tank.x > collectableObjects[i].x - TILE_WIDTH / 2 && tank.x < collectableObjects[i].x + TILE_WIDTH / 2;
+        var within_y = tank.y > collectableObjects[i].y - TILE_HEIGHT / 2 && tank.y < collectableObjects[i].y + TILE_HEIGHT / 2;
+        if (within_x && within_y && !collectableObjects[i].collected) {  // Check that object has not already been collected
+            collectableObjects[i].collected = true;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+};
+
+var checkCollisionWithEnemies = function(tank, enemyObjects) {
+    //println("enemyObjects length = " + enemyObjects.length);
+    for (var i = 0; i < enemyObjects.length; i++) {
+        var within_x = tank.x > enemyObjects[i].position.x - TILE_WIDTH / 2 && tank.x < enemyObjects[i].position.x + TILE_WIDTH / 2;
+        var within_y = tank.y > enemyObjects[i].position.y - TILE_HEIGHT * 3 / 2 && tank.y < enemyObjects[i].position.y + TILE_HEIGHT * 3 / 2;
+        
+        // println("tank.x = " + tank.x + " | enemy.x = " + enemyObjects[i].position.x);
+        // println("tank.y = " + tank.y + " | enemy.y = " + enemyObjects[i].position.y);
+        if (within_x && within_y && !enemyObjects[i].defeated) {  // Check that object has not already been collected
+            // Inflict collateral damage
+            tank.health--;
+            enemyObjects[i].health--;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+};
+
+/*
+ * Pass in an array containing the collectable objects within the game tilemap
+ */
+var checkCollisionWithBullets = function(tank, collectableObjects) {
+    // TODO: 
+};
+
+var upgradedObj = function(x, y) {
+    this.x = x;
+    this.y = y;
+    this.movement = 0;
+    this.collected = false;
+    this.type = ObjectType_e.COLLECTABLE;
+};
+
+upgradedObj.prototype.draw = function(m) {
+    var numIterations = 8;
+    var waitTime = 7;
+    var amplititude = 6;
+    var div = (m % (waitTime * numIterations)) * -1;
+    if (div >= 0 && div < waitTime) {
+        this.movement = -amplititude;
+    }
+    if (div >= waitTime && div < waitTime * 2) {
+        this.movement = -(amplititude / 2);
+    }
+    if (div >= waitTime * 2 && div < waitTime * 3) {
+        this.movement = 0;
+    }
+    if (div >= waitTime * 3 && div < waitTime * 4) {
+        this.movement = amplititude / 2;
+    }
+    if (div >= waitTime * 4 && div < waitTime * 5) {
+        this.movement = amplititude;
+    }
+    if (div >= waitTime * 5 && div < waitTime * 6) {
+        this.movement = amplititude / 2;
+    }
+    if (div >= waitTime * 6 && div < waitTime * 7) {
+        this.movement = 0;
+    }
+    if (div >= waitTime * 7) {
+        this.movement = -(amplititude / 2);
+    }
+    image(Assets_t.PANZER_GUN, this.x, this.y, TILE_WIDTH + this.movement * 3/2, TILE_HEIGHT * 3/2 + this.movement);
+};
+
+var tankUpgradedObj = function(x, y, s) {
+    this.x = x;
+    this.y = y;
+    // this.position = new PVector(x, y);
+    this.speed = s;
+    this.type = ObjectType_e.TANK;
+
+    // Tank Aiming variables
+    this.rotationAllowed = false;
+    this.currGunAngle = 0;
+    this.aimSpeed = 1;  // Aiming time delay in milliseconds
+    
+    this.bullets = [];
+    this.bulletSpeed = -6;
+    this.tankShells = [];
+    this.laser = new laserObj(this.x, this.y);
+    this.laserOn = false;
+    this.tankShellSpeed = -10;
+    this.autoFireEnabled = false;
+    this.prevFrameCount = 0;
+
+    this.health = 1000;
+};
+
+tankUpgradedObj.prototype.draw = function(frameCount) {
+    var self = this;
+    if (DISABLE.W === false) {
+        self.y -= self.speed;
+    }
+    if (DISABLE.S === false) {
+        self.y += self.speed;  
+    }
+    if (DISABLE.D === false && self.x < SCREEN_WIDTH - TILE_WIDTH) {
+        self.x += self.speed;
+    }
+    if (DISABLE.A === false && self.x > 0) {
+        self.x -= self.speed;
+    }
+    if (DISABLE.SPACE === false) {
+        self.speed = 5;
+    }
+    else {
+        self.speed = 2;
+    }
+    image(Assets_t.PANZER, this.x, this.y, TILE_WIDTH, TILE_HEIGHT);
+
+    if (!DISABLE.DOWN) {
+        this.autoFireEnabled = !this.autoFireEnabled;  // toggle the auto fire enabled option
+        this.autoFireToggled = true;
+        this.laserOn = true;
+    }
+    if (!DISABLE.UP || this.autoFireEnabled) {  // Fire the gun
+        if (frameCount % 5 === 0) { 
+            this.bullets.push(new bulletObj(this.x + TILE_WIDTH * 2 / 3, this.y, this.bulletSpeed));
+        }
+        // if (frameCount % 8 === 0) { // TODO: Add more diversity to tank ammunition
+        //     this.tankShells.push(new tankShellObj(this.x + TILE_WIDTH / 2, this.y, this.tankShellSpeed));
+        // }
+        this.laserOn = true;
+        this.laser = new laserObj(this.x + TILE_WIDTH / 2, this.y);
+    }
+    
+    // Draw the regular machine gun bullets
+    for (var i = 0; i < this.bullets.length; i++) {
+        fill(186, 140, 0);
+        this.bullets[i].draw();
+    }
+
+    // Aiming (rotation/translation) of the tank gun
+    if (!DISABLE.LEFT) {
+        this.currGunAngle -= this.aimSpeed;
+    }
+    if (!DISABLE.RIGHT) {
+        this.currGunAngle += this.aimSpeed;
+    }
+    translate(this.x + TILE_WIDTH / 2, this.y + TILE_HEIGHT / 2);  // Move to the center of rotation
+    rotate(radians(this.currGunAngle));
+    translate( -(this.x + TILE_WIDTH / 2), -(this.y + TILE_HEIGHT / 2));  // Move back
+    image(Assets_t.PANZER_GUN, this.x, this.y, TILE_WIDTH, TILE_HEIGHT);
+    
+    if (!this.laserOn || this.prevFrameCount === 0) {
+        this.prevFrameCount = frameCount;
+    }
+
+    if (frameCount - this.prevFrameCount < 16) {
+        this.laser.draw( (frameCount - this.prevFrameCount) / 2);
+    }
+    else {
+        this.laser.draw(8);
+    }
+
+    if (DISABLE.UP && !this.autoFireEnabled) {  // Ensure laser is properly turned off
+        this.laserOn = false;
+    }
+    
+    // TODO: Implement normal tank shell rounds
+    // Draw the tank shell rounds
+    // for (var i = 0; i < this.tankShells.length; i++) {
+    //     this.tankShells[i].draw(this.currGunAngle);
+    // }
+};
+
+
+
+var enemy1Obj = function(x, y) {
+    this.position = new PVector(x, y);
+    this.step = new PVector(0, 0);
+    this.wanderAngle = random(0, 180);
+    this.wanderDistance = random(0, 100);
+    this.pursueTarget = new PVector(0, 0);
+    this.defeated = false;
+    this.health = 500;
+    this.type = ObjectType_e.ENEMY;
+};
+
+enemy1Obj.prototype.draw = function() {
+    image(Assets_t.ENEMY1_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
+    image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3/4, TILE_WIDTH, TILE_HEIGHT);
+};
+
+var enemy2Obj = function(x, y, s) {
+    //this.x = x;
+    this.position = new PVector(x, y);
+    this.step = new PVector(0, 0);
+    this.wanderAngle = random(0, 180);
+    this.wanderDistance = random(0, 100);
+    this.pursueTarget = new PVector(0, 0);
+    this.defeated = false;
+    this.health = 1000;
+    this.type = ObjectType_e.ENEMY;
+};
+
+enemy2Obj.prototype.draw = function() {
+    image(Assets_t.ENEMY2_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
+    image(Assets_t.ENEMY_TURRET, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
+    image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3/4, TILE_WIDTH, TILE_HEIGHT);
+};
+
+var bossEnemy = function(x, y) {
+    this.position = new PVector(x, y);
+    this.step = new PVector(0, 0);
+    this.wanderAngle = random(0, 180);
+    this.wanderDistance = random(0, 100);
+    this.pursueTarget = new PVector(0, 0);
+    this.defeated = false;
+    this.health = 500;
+    this.type = ObjectType_e.ENEMY;
+};
+
+bossEnemy.prototype.draw = function() {
+    // TODO:
+    // image();
 };
 
 var prevTime = 0;
@@ -313,99 +612,153 @@ var drawStartScreen = function() {
 var gameObj = function() {
     // Each tile is 20 x 20 pixels, 
     this.tilemap = [ // TODO: Currently an empty 50x50 tilemap
-        "   t  t           t t t             t",  // row: 1  - 20   px
-        "                                     ",  // row: 2  - 40   px
-        "                                     ",  // row: 3  - 60   px
-        "                                     ",  // row: 4  - 80   px
-        "                                     ",  // row: 5  - 100  px
-        "                                     ",  // row: 6  - 120  px
-        "                                     ",  // row: 7  - 140  px
-        "                                     ",  // row: 8  - 160  px
-        "                                     ",  // row: 9  - 180  px
-        "                                     ",  // row: 10 - 200  px
-        "                                     ",  // row: 11 - 220  px
-        "                                     ",  // row: 12 - 240  px
-        "                                     ",  // row: 13 - 260  px
-        "                                     ",  // row: 14 - 280  px
-        "                                     ",  // row: 15 - 300  px
-        "                                     ",  // row: 16 - 320  px
-        "                                     ",  // row: 17 - 340  px
-        "                                     ",  // row: 18 - 360  px
-        "                                     ",  // row: 19 - 380  px
-        "                                     ",  // row: 20 - 400  px
-        "                                     ",  // row: 21 - 420  px
-        "                                     ",  // row: 22 - 440  px
-        "                                     ",  // row: 23 - 460  px
-        "                                     ",  // row: 24 - 480  px
-        "                                     ",  // row: 25 - 500  px
-        "                                     ",  // row: 26 - 520  px
-        "                                     ",  // row: 27 - 540  px
-        "                                     ",  // row: 28 - 560  px
-        "                                     ",  // row: 29 - 580  px
-        "                                     ",  // row: 30 - 600  px
-        "                                     ",  // row: 31 - 620  px
-        "                                     ",  // row: 32 - 640  px
-        "                                     ",  // row: 33 - 660  px
-        "                                     ",  // row: 34 - 680  px
-        "                                     ",  // row: 35 - 700  px
-        "                                     ",  // row: 36 - 720  px
-        "                                     ",  // row: 37 - 740  px
-        "                                     ",  // row: 38 - 760  px
-        "                                     ",  // row: 39 - 780  px
-        "                                     ",  // row: 40 - 800  px
-        "                                     ",  // row: 41 - 820  px
-        "                                     ",  // row: 42 - 840  px
-        "                                     ",  // row: 43 - 860  px
-        "                                     ",  // row: 44 - 880  px
-        "                                     ",  // row: 45 - 900  px
-        "                                     ",  // row: 46 - 920  px
-        "                                     ",  // row: 47 - 940  px
-        "                                     ",  // row: 48 - 960  px
-        "                                     ",  // row: 49 - 980  px
-        "    ttt                tttt         t",  // row: 50 - 1000 px
+        "              ",  // row: 1  - 20   px
+        "              ",  // row: 2  - 40   px
+        "              ",  // row: 3  - 60   px
+        "              ",  // row: 4  - 80   px
+        "              ",  // row: 5  - 100  px
+        "       t      ",  // row: 6  - 120  px
+        "              ",  // row: 7  - 140  px
+        "              ",  // row: 8  - 160  px
+        "              ",  // row: 9  - 180  px
+        "              ",  // row: 10 - 200  px
+        "          x   ",  // row: 11 - 220  px
+        "    x         ",  // row: 12 - 240  px
+        "              ",  // row: 13 - 260  px
+        "              ",  // row: 14 - 280  px
+        "              ",  // row: 15 - 300  px
+        "       t      ",  // row: 16 - 320  px
+        "              ",  // row: 17 - 340  px
+        "              ",  // row: 18 - 360  px
+        "              ",  // row: 19 - 380  px
+        "    t      x  ",  // row: 20 - 400  px
+        "              ",  // row: 21 - 420  px
+        "              ",  // row: 22 - 440  px
+        "    x         ",  // row: 23 - 460  px
+        "              ",  // row: 24 - 480  px
+        "              ",  // row: 25 - 500  px
+        "              ",  // row: 26 - 520  px
+        "       t      ",  // row: 27 - 540  px
+        "              ",  // row: 28 - 560  px
+        "              ",  // row: 29 - 580  px
+        "              ",  // row: 30 - 600  px
+        "          t   ",  // row: 31 - 620  px
+        "              ",  // row: 32 - 640  px
+        "   x          ",  // row: 33 - 660  px
+        "              ",  // row: 34 - 680  px
+        "              ",  // row: 35 - 700  px
+        "              ",  // row: 36 - 720  px
+        "              ",  // row: 37 - 740  px
+        "         t    ",  // row: 38 - 760  px
+        "              ",  // row: 39 - 780  px
+        "              ",  // row: 40 - 800  px
+        "              ",  // row: 41 - 820  px
+        "     u        ",  // row: 42 - 840  px
+        "              ",  // row: 43 - 860  px
+        "              ",  // row: 44 - 880  px
+        "              ",  // row: 45 - 900  px
+        "              ",  // row: 46 - 920  px
+        "              ",  // row: 47 - 940  px
+        "              ",  // row: 48 - 960  px
+        "              ",  // row: 49 - 980  px
+        "              ",  // row: 50 - 1000 px
+    ];
+
+    this.tilemap2 = [
+        "              ",  // row: 1  - 20   px
+        "              ",  // row: 2  - 40   px
+        " x        t   ",  // row: 3  - 60   px
+        "              ",  // row: 4  - 80   px
+        "      x       ",  // row: 5  - 100  px
+        "              ",  // row: 6  - 120  px
+        "              ",  // row: 7  - 140  px
+        "              ",  // row: 8  - 160  px
+        "    t  t      ",  // row: 9  - 180  px
+        "              ",  // row: 10 - 200  px
+        "              ",  // row: 11 - 220  px
+        "           x  ",  // row: 12 - 240  px
+        "              ",  // row: 13 - 260  px
+        "  x           ",  // row: 14 - 280  px
+        "              ",  // row: 15 - 300  px
+        "         t    ",  // row: 16 - 320  px
+        "            x ",  // row: 17 - 340  px
+        "              ",  // row: 18 - 360  px
+        "              ",  // row: 19 - 380  px
+        "     t     x  ",  // row: 20 - 400  px
+        "              ",  // row: 21 - 420  px
+        "              ",  // row: 22 - 440  px
+        "              ",  // row: 23 - 460  px
+        "              ",  // row: 24 - 480  px
+        "              ",  // row: 25 - 500  px
+        "              ",  // row: 26 - 520  px
+        "         t    ",  // row: 27 - 540  px
+        "              ",  // row: 28 - 560  px
+        "    x         ",  // row: 29 - 580  px
+        "              ",  // row: 30 - 600  px
+        "              ",  // row: 31 - 620  px
+        "              ",  // row: 32 - 640  px
+        "     t        ",  // row: 33 - 660  px
+        "              ",  // row: 34 - 680  px
+        "          t   ",  // row: 35 - 700  px
+        "              ",  // row: 36 - 720  px
+        "      x       ",  // row: 37 - 740  px
+        "              ",  // row: 38 - 760  px
+        "              ",  // row: 39 - 780  px
+        "              ",  // row: 40 - 800  px
+        "              ",  // row: 41 - 820  px
+        "              ",  // row: 42 - 840  px
+        "          t   ",  // row: 43 - 860  px
+        "              ",  // row: 44 - 880  px
+        "              ",  // row: 45 - 900  px
+        "   x          ",  // row: 46 - 920  px
+        "              ",  // row: 47 - 940  px
+        "              ",  // row: 48 - 960  px
+        "              ",  // row: 49 - 980  px
+        "              ",  // row: 50 - 1000 px
     ];
     
     this.gameObjects = [];
-    this.enemies = [];
+    this.enemyObjects = [];
+    this.gameObjects2 = [];
+    this.enemyObjects2 = [];
     this.yCoor = 0;
     this.xCoor = 0;
     this.score = 0;
     this.scoreMultiplier = 10;
-    this.boneCount = 0;
-    this.swordCollected = false;
     this.enemyCount = 0;
 };
 
-var GAME_INST = new gameObj();
-var MAP_OFFSET_Y = 0;
-
 gameObj.prototype.initialize = function() {
-    var x_offset = 90;
     for (var i = 0; i < this.tilemap.length; i++) {
         for (var j = 0; j < this.tilemap[i].length; j++) {
             switch (this.tilemap[i][j]) {
                 case 't':
-                    this.gameObjects.push(new enemy1Obj(j*TS + x_offset, i*TS + MAP_OFFSET_Y));
+                    this.enemyObjects.push(new enemy1Obj(j*TILE_WIDTH, i*TILE_HEIGHT));
+                    break;
+                case 'x':
+                    this.enemyObjects.push(new enemy2Obj(j*TILE_WIDTH, i*TILE_HEIGHT));
+                    break;
+                case 'u':
+                    this.gameObjects.push(new upgradedObj(j*TILE_WIDTH, i*TILE_HEIGHT));
+                    break;
+            }
+        }
+    }
+    for (var i = 0; i < this.tilemap2.length; i++) {  // initialize 2nd iteration of the tilemap for the 2nd repeat 
+        for (var j = 0; j < this.tilemap2[i].length; j++) {
+            switch (this.tilemap2[i][j]) {
+                case 't':
+                    this.enemyObjects2.push(new enemy1Obj(j*TILE_WIDTH, i*TILE_HEIGHT));
+                    break;
+                case 'x':
+                    this.enemyObjects2.push(new enemy2Obj(j*TILE_WIDTH, i*TILE_HEIGHT));
                     break;
             }
         }
     }
 };
 
-GAME_INST.initialize();
 /*
-var pStartCoor = {
-    X: 200,
-    Y: 200,
-};
-
-var playerOptions = {
-    BASIC: new playerObj(160, 260, 2),
-    UPGRADED: new playerUpgradedObj(320, 120, 4),
-};
-
-// var upgraded_player = new playerUpgradedObj(320, 180, 3);
-
 var displayScore = function() {
     fill(255, 50, 50);
     textSize(18);
@@ -429,12 +782,64 @@ var createTank = function(x, y, s, tankType) {
     }
 };
 
-gameObj.prototype.drawLevelOne = function(y) {
-    image(GameScreens_t.LEVEL_ONE, this.xCoor, this.yCoor + y);
-    for (var i = 0; i < GAME_INST.gameObjects.length; i++) {
-        GAME_INST.gameObjects[i].draw();
+gameObj.prototype.drawLevelOne = function(y, loopIteration) {
+    image(GameScreens_t.LEVEL_ONE, this.xCoor, this.yCoor);
+    if (loopIteration === 0) {  // First iteration
+        for (var i = 0; i < GAME_INST.enemyObjects.length; i++) { // enemy objects
+            GAME_INST.enemyObjects[i].draw();
+        }
+        for (var i = 0; i < GAME_INST.gameObjects.length; i++) { // collectable objects
+            if (!GAME_INST.gameObjects[i].collected) {
+                GAME_INST.gameObjects[i].draw(y);
+            }
+        }
+    }
+    else if (loopIteration === 1) {
+        for (var i = 0; i < GAME_INST.enemyObjects2.length; i++) { // enemy objects
+            GAME_INST.enemyObjects2[i].draw();
+        }
+        for (var i = 0; i < GAME_INST.gameObjects2.length; i++) { // collectable objects
+            if (!GAME_INST.gameObjects[i].collected) {
+                GAME_INST.gameObjects2[i].draw(y);
+            }
+        }
     }
 };
+
+/*
+ * Pass in a loop counter to track how many loop passes have been made
+ */
+var animatedLoadTransition = function(y) {
+
+};
+
+/*
+ * Pass in a loop counter to track how many loop passes have been made
+ */
+prevTime = 0;
+var animationLength = 5;
+var numHelpAnimationFrames = 6;
+var animatedHelpTransition = function(animationCount) {
+    if (animationCount < animationLength) {
+        image(GameScreens_t.HELP_SCREEN_TRANSITIONS[0], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+    else if (animationCount >= animationLength * 1 && animationCount < animationLength * 2) {
+        image(GameScreens_t.HELP_SCREEN_TRANSITIONS[1], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+    else if (animationCount >= animationLength * 2 && animationCount < animationLength * 3) {
+        image(GameScreens_t.HELP_SCREEN_TRANSITIONS[2], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+    else if (animationCount >= animationLength * 3 && animationCount < animationLength * 4) {
+        image(GameScreens_t.HELP_SCREEN_TRANSITIONS[3], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+    else if (animationCount >= animationLength * 4 && animationCount < animationLength * 5) {
+        image(GameScreens_t.HELP_SCREEN_TRANSITIONS[4], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+    else if (animationCount >= animationLength * 5 && animationCount < animationLength * 6) {
+        image(GameScreens_t.HELP_SCREEN_TRANSITIONS[5], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+};
+
 
 // Simple structure to track the current state of the mouse clicks
 var MouseState = {
@@ -450,15 +855,11 @@ var mouseReleased = function() {
 };
 
 // Initialize the game state to the start screen/main menu
-var CURRENT_GAME_STATE = GameState_e.START_SCREEN;
-
 var changeGameState = function(GameState) {
     CURRENT_GAME_STATE = GameState;
 };
 
-//var player = playerOptions.BASIC;
 var translationX, translationY;
-
 var animatedLoadTransition = function() {
     _ms_delay = 100;
     var i = 0;
@@ -474,145 +875,172 @@ var animatedLoadTransition = function() {
     }
 };
 
-//var drawBackground
-
-var drawHelpScreen = function() {
-    image(GameScreens_t.LEVEL_ONE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+var drawHelpScreen = function(frameCount) {
+    image(GameScreens_t.HELP_SCREEN, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);  // Main instruction screen
+    if ((frameCount % HelpSpeedOptions_e.MEDIUM) * -1 <= HelpSpeedOptions_e.MEDIUM / 2) {  // Back Arrow blink functionality
+        image(GameScreens_t.HELP_SCREEN_BACK_BUTTON, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
 };
 
-// var drawEnemy1 = function() {
-//     image(GameScreens_t.ENEMY_ONE, 30, 10, 60, 60);
-//     fill(255, 255, 0);
-//     text("Enemy One", 30, 100);
-// };
 
-// var drawEnemy2 = function() {
-//     image(GameScreens_t.ENEMY_TWO, 160, 10, 60, 60);
-//     fill(255, 255, 0);
-//     text("Enemy Two", 160, 100);
-// };
-
-// var drawEnemy3 = function() {
-//     image(GameScreens_t.ENEMY_THREE, 280, 10, 60, 60);
-//     fill(255, 255, 0);
-//     text("Enemy Three", 280, 100);
-// };
-
-// var drawEnemy4 = function() {
-//     image(GameScreens_t.ENEMY_FOUR, 400, 10, 60, 60);
-//     fill(255, 255, 0);
-//     text("Enemy Four", 400, 100);
-// };
-
-// var drawTank = function() {
-//     fill(45, 148, 22);
-//     ellipse(120, 470, 80, 20);
-//     noStroke();
-//     ellipse(120, 450, 80, 40);
-//     rect(80, 410, 50, 40);
-//     fill(255, 255, 255);
-//     rect(90, 420, 30, 20);
-//     fill(0,0,0);
-//     ellipse(100, 470, 15, 15);
-//     ellipse(120, 470, 15, 15);
-//     ellipse(140, 470, 15, 15);
-//     rect(95, 425, 20, 10);
-//     fill(150, 102, 30)
-//     rect(130, 440, 10, 10);
-//     fill(255, 255, 255);
-//     text("The enemies as listed above are the\n different" +
-//     "levels of difficulty. The tank\n as shown below is one of " +
-//     "three different\n characters to play!", 180, 330);
-// }
-
-// var drawInstructions = function() {
-//     fill(10, 5, 153);
-//     text("Objective of Game:\n" +
-//     "While trying to get to the end of the battlefield,\n" +
-//     "you are going to be doging several obstacles\n" +
-//     "by doing special and cool maneuvers. With\n every" +
-//     "level and the farther you get, the more\n obstancles" +
-//     "appear in your path! Each enemy\n has a special attack" +
-//     "that they will perform to\n stop you from completing the" +
-//     "course! And if\n that was not hard enough before you can\n" +
-//     "cross the finish line, you will have to defeat\n the Big Bad" +
-//     "Boss. Throughout the game you\n can purchase weapons that will " +
-//     "help defend\n youself. The rewards are high, but the road\n to victory" +
-//     "is a long one. Take it if you dare!!", 170, 70);
-// }
-
-var l1 = -1200;
+var GAME_INST = new gameObj();
+var CURRENT_GAME_STATE = GameState_e.START_SCREEN;
+GAME_INST.initialize();
 
 var tankSpeed = 3;
-var panzer = createTank(200, 200, 3, TankOptions_e.BASIC);
+var loopCount = -3400;
+var panzer = createTank(SCREEN_WIDTH/2 - TILE_WIDTH/2, -loopCount + SCREEN_HEIGHT*2/3, tankSpeed, TankOptions_e.BASIC);
 var upgradeCollected = false;
 var tankUpgraded = false;
+var animationFinished = false;
+var animationCount = 0;
+var fontSize = 48;
+var loopIterations = 0;
 
 // Setup the FSM within this function
 var draw = function() {
     switch(CURRENT_GAME_STATE) {
         case GameState_e.START_SCREEN:
             drawStartScreen();
-            if (MouseState.PRESSED && mouseX < 195 && mouseX > 25 && mouseY < 120 && mouseY > 55) {
+            if (MouseState.PRESSED && mouseX < 303 && mouseX > 0 && mouseY < 164 && mouseY > 64) {
                 changeGameState(GameState_e.ANIMATED_LOAD_TRANSITION);
                 MouseState.PRESSED = 0;  // Force a click release
             }
-            if (MouseState.PRESSED && mouseX < 128 && mouseX > 33 && mouseY < 205 && mouseY > 163) {
-                changeGameState(GameState_e.HELP_SCREEN);
+            if (MouseState.PRESSED && mouseX < 215 && mouseX > 0 && mouseY < 270 && mouseY > 196) {
+                changeGameState(GameState_e.ANIMATED_HELP_TRANSITION);
                 MouseState.PRESSED = 0;  // Force a click release
             }
             break;
-        case GameState_e.ANIMATED_LOAD_TRANSITION:
+        case GameState_e.ANIMATED_LOAD_TRANSITION:  // TODO: for transition to each of the levels
             println("Some animation to load level one for a smoother transition.");
             //animatedLoadTransition();
             changeGameState(GameState_e.LEVEL_ONE);
             break;
         case GameState_e.LEVEL_ONE:
-            GAME_INST.drawLevelOne(l1);
-            l1++;
-            if (l1 > 800) {
-                l1 = -1200;
+            pushMatrix();
+            translate(0, loopCount);
+            GAME_INST.drawLevelOne(loopCount, loopIterations);
+
+            // Implement constantly scrolling background
+            // TODO: Make use of this repeated scrolling by creating 2 - 3 different tilemaps overlayed on the same background
+            // This way, we have more variety to our levels and extended length without the extra overhead of a longer background image
+            loopCount++;
+            if (loopCount > 0) { 
+                loopCount = -3400;
+                panzer.y -= loopCount;
+                loopIterations++;
             }
-            panzer.draw();
-            if (upgradeCollected && !tankUpgraded) {
+            
+            // Win Condition!  
+            if (loopIterations === 2) {  // TODO: Work on win screen improvements
+                changeGameState(GameState_e.WIN_SCREEN);
+            }
+
+            // TODO:  Display character's health
+            stroke()
+            fill(230, 30, 30);
+            textSize(14);
+            text("HEALTH: " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            noStroke();
+            
+            if (loopIterations === 0) {  // 1st wave of enemies (1st map iteration)
+                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects);
+            }
+            else if (loopIterations === 1) {  // 2nd wave of enemies (2nd map iteration)
+                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects2);
+            }
+
+            // Main functionality of the panzer tank
+            panzer.draw(loopCount);
+            
+            // Lose Condition...  (Health is fully decremented and tank is dead)
+            if (panzer.health <= 0) {  // TODO: Work on lose screen improvements
+                changeGameState(GameState_e.LOSE_SCREEN);
+            }
+
+            // Check upgraded case
+            upgradeCollected = checkCollisionWithUpgrade(panzer, GAME_INST.gameObjects);
+            if (upgradeCollected && !tankUpgraded) {  // Upgrade collected!
+                var autoFireEnabled = panzer.autoFireEnabled;
+                var currentHealth = panzer.health;
                 panzer = createTank(panzer.x, panzer.y, tankSpeed, TankOptions_e.UPGRADED);
+                panzer.autoFireEnabled = autoFireEnabled;  // Remember state of the previous tank
+                panzer.health = currentHealth;  // Update the upgraded tanks health 
+                tankUpgraded = true;  // Ensure only 1x execution of this logic
             }
-            //println("TODO: LEVEL_ONE");
-            //changeGameState(GameState_e.DEFAULT);
+
+            popMatrix();
             break;
-        case GameState_e.LEVEL_TWO:
+        case GameState_e.LEVEL_TWO:  // TODO: 1st level
             println("TODO: LEVEL_TWO");
             break;
-        case GameState_e.LEVEL_THREE:
+        case GameState_e.LEVEL_THREE:  // TODO: 2nd level
             println("TODO: LEVEL_THREE");
             break;
-        case GameState_e.HELP_SCREEN:
-            drawHelpScreen();
-            drawInstructions();
+        case GameState_e.ANIMATED_HELP_TRANSITION:
+            animatedHelpTransition(animationCount);
+            if (animationCount >= animationLength * numHelpAnimationFrames) {
+                //println("loopCount = " + loopCount);
+                //animationCount = 0;  // reset the animation count
+                changeGameState(GameState_e.HELP_SCREEN);
+            }
+            animationCount++;
             break;
-        case GameState_e.CREDITS:
+        case GameState_e.HELP_SCREEN:  // COMPLETED:  Transition from the main menu to the help screen
+            drawHelpScreen(loopCount);
+            //println("mouseX = " + mouseX + " | mouseY = " + mouseY);
+            var mouseInArrow = MouseState.PRESSED && mouseX < 675 && mouseX > 574 && mouseY < 587 && mouseY > 490;
+            var mouseInArrowStem = MouseState.PRESSED && mouseX < 575 && mouseX > 523 && mouseY < 556 && mouseY > 524;
+            if (mouseInArrow || mouseInArrowStem) {
+                //animationCount = animationLength *
+                changeGameState(GameState_e.ANIMATED_MENU_TRANSITION);
+                MouseState.PRESSED = 0;  // Force a click release
+            }
+            loopCount++;
+            //drawInstructions();
+            break;
+        case GameState_e.ANIMATED_MENU_TRANSITION:  // COMPLETED:  Transition back to the main menu
+            animatedHelpTransition(animationCount);
+            if (animationCount <= 0) {
+                //println("loopCount = " + loopCount);
+                //animationCount = 0;  // reset the animation count
+                changeGameState(GameState_e.START_SCREEN);
+            }
+            animationCount--;
+            break;
+        case GameState_e.CREDITS:  // TODO:  End credits
             println("TODO: CREDITS");
             break;
-        case GameState_e.ANIMATED_LOSE_TRANSITION:
+        case GameState_e.ANIMATED_LOSE_TRANSITION:  // TODO: Animate transition to lose screen
             println("TODO: ANIMATED_LOSE_TRANSITION");
             break;
-        case GameState_e.LOSE_SCREEN:
-            println("TODO: LOSE_SCREEN");
+        case GameState_e.LOSE_SCREEN:  // TEMPORARY: Placeholder lose screen for win condition
+            background(0, 0, 0);
+            fill(255, 255, 255);
+            textSize(fontSize);
+            text("YOU LOSE!!! :(", 200, 280);
+            println("TEMPORARY: LOSE_SCREEN");
             break;
-        case GameState_e.ANIMATED_WIN_TRANSITION:
+        case GameState_e.ANIMATED_WIN_TRANSITION:  // TODO: Animate transition to win screen
             println("TODO: ANIMATED_WIN_TRANSITION");
             break;
-        case GameState_e.WIN_SCREEN:
-            println("TODO: WIN_SCREEN");
+        case GameState_e.WIN_SCREEN:  // TEMPORARY: Placeholder win screen for win condition
+            background(0, 0, 0);
+            stroke()
+            fill(255, 255, 255);
+            textSize(fontSize);
+            text("YOU WIN!!!", 200, 280);
+            noStroke();
+            println("TEMPORARY: WIN_SCREEN");
             break;
-        default:
+        default:  // Default case should not be hit.  Here for debugging purposes only...
             // drawEnemy1();
             // drawEnemy2();
             // drawEnemy3();
             // drawEnemy4();
             // drawTank();
-            // console.debug("Error: Default game state hit!");
-            // println("Error: Default game state hit!");
+            console.debug("Error: Default game state hit!");
+            println("Error: Default game state hit!");
             break;
     } // End switch
 };
