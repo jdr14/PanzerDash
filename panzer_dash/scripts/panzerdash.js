@@ -250,14 +250,33 @@ var bulletObj = function(x, y, s) {
     this.l = 7;  // length
     this.speed = new PVector(0, s);
     this.damage = 1;
+    this.hit = 0;
 };
 
 bulletObj.prototype.draw = function() {
-    noStroke();
-    fill(31, 31, 24);
-    rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
-    ellipse(this.position.x, this.position.y, this.w, this.w);
-    this.position.add(this.speed);
+    if(this.hit == 0) {
+        noStroke();
+        fill(31, 31, 24);
+        rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
+        ellipse(this.position.x, this.position.y, this.w, this.w);
+        this.position.add(this.speed);
+    }
+};
+
+bulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
+    for (var i = 0; i < enemyList.length; i++) {
+        var within_x = this.position.x > round(enemyList[i].position.x) && this.position.x < round(enemyList[i].position.x) + TILE_WIDTH;
+        var within_y = this.position.y > round(enemyList[i].position.y) - TILE_HEIGHT && this.position.y < round(enemyList[i].position.y) + TILE_HEIGHT;
+
+        if (within_x && within_y && !enemyList[i].defeated) {  // Check that object has not already been collected
+            // Inflict collateral damage
+            enemyList[i].health--;
+            if (enemyList[i].health < 1) {
+                enemyList[i].defeated = true;
+            }
+            this.hit = 1;
+        }
+    }
 };
 
 var laserObj = function(x, y) {
@@ -347,6 +366,12 @@ tankObj.prototype.draw = function(frameCount) {
     image(Assets_t.PANZER, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     for (var i = 0; i < this.bullets.length; i++) {
         this.bullets[i].draw();
+        if (loopIterations === 0) {  // 1st wave of enemies (1st map iteration)
+            this.bullets[i].EnemyCollisionCheck(GAME_INST.enemyObjects);
+        }
+        else if (loopIterations === 1) {  // 2nd wave of enemies (2nd map iteration)
+            this.bullets[i].EnemyCollisionCheck(GAME_INST.enemyObjects2);
+        }
     }
 };
 
@@ -370,19 +395,18 @@ var checkCollisionWithUpgrade = function(tank, collectableObjects) {
 var checkCollisionWithEnemies = function(tank, enemyObjects) {
     //println("enemyObjects length = " + enemyObjects.length);
     for (var i = 0; i < enemyObjects.length; i++) {
-        var within_x = tank.x > enemyObjects[i].position.x - TILE_WIDTH / 2 && tank.x < enemyObjects[i].position.x + TILE_WIDTH / 2;
-        var within_y = tank.y > enemyObjects[i].position.y - TILE_HEIGHT * 3 / 2 && tank.y < enemyObjects[i].position.y + TILE_HEIGHT * 3 / 2;
+        var within_x = tank.x > round(enemyObjects[i].position.x) - TILE_WIDTH / 2 && tank.x < round(enemyObjects[i].position.x) + TILE_WIDTH / 2;
+        var within_y = tank.y > round(enemyObjects[i].position.y) - TILE_HEIGHT * 3 / 2 && tank.y < round(enemyObjects[i].position.y) + TILE_HEIGHT * 3 / 2;
         
-        // println("tank.x = " + tank.x + " | enemy.x = " + enemyObjects[i].position.x);
-        // println("tank.y = " + tank.y + " | enemy.y = " + enemyObjects[i].position.y);
+        // println("tank.x = " + tank.x + " | i = " + i + " | enemy.x = " + round(enemyObjects[i].position.x));
+        // println("tank.y = " + tank.y + " | i = " + i + " | enemy.y = " + round(enemyObjects[i].position.y));
+
         if (within_x && within_y && !enemyObjects[i].defeated) {  // Check that object has not already been collected
             // Inflict collateral damage
             tank.health--;
             enemyObjects[i].health--;
             return true;
-        }
-        else {
-            return false;
+
         }
     }
 };
@@ -500,6 +524,12 @@ tankUpgradedObj.prototype.draw = function(frameCount) {
     for (var i = 0; i < this.bullets.length; i++) {
         fill(186, 140, 0);
         this.bullets[i].draw();
+        if (loopIterations === 0) {  // 1st wave of enemies (1st map iteration)
+            this.bullets[i].EnemyCollisionCheck(GAME_INST.enemyObjects);
+        }
+        else if (loopIterations === 1) {  // 2nd wave of enemies (2nd map iteration)
+            this.bullets[i].EnemyCollisionCheck(GAME_INST.enemyObjects2);
+        }
     }
 
     // Aiming (rotation/translation) of the tank gun
@@ -545,13 +575,32 @@ var enemy1Obj = function(x, y) {
     this.wanderDistance = random(0, 100);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 500;
+    this.health = 20;
     this.type = ObjectType_e.ENEMY;
 };
 
 enemy1Obj.prototype.draw = function() {
-    image(Assets_t.ENEMY1_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
-    image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3/4, TILE_WIDTH, TILE_HEIGHT);
+    if (!this.defeated) {
+        image(Assets_t.ENEMY1_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3/4, TILE_WIDTH, TILE_HEIGHT);
+    }
+};
+
+enemy1Obj.prototype.wander = function() {
+    this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
+    this.position.add(this.step);
+    // this.wanderAngle += random(-15, 15);
+
+    this.wanderDistance--;
+    if (this.wanderDistance < 0) {
+        this.wanderDistance = random(70, 100);
+        this.wanderAngle += random(-90, 90);
+    }
+
+    if (this.position.x > 840) {this.position.x = 10;}
+    else if (this.position.x < 5) {this.position.x = 800;}
+    // if (this.position.y > 520) {this.position.y = -20;}
+    // else if (this.position.y < -20) {this.position.y = 520;}
 };
 
 var enemy2Obj = function(x, y, s) {
@@ -559,17 +608,37 @@ var enemy2Obj = function(x, y, s) {
     this.position = new PVector(x, y);
     this.step = new PVector(0, 0);
     this.wanderAngle = random(0, 180);
-    this.wanderDistance = random(0, 100);
+    this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 1000;
+    this.health = 40;
     this.type = ObjectType_e.ENEMY;
 };
 
 enemy2Obj.prototype.draw = function() {
-    image(Assets_t.ENEMY2_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
-    image(Assets_t.ENEMY_TURRET, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
-    image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3/4, TILE_WIDTH, TILE_HEIGHT);
+    if (!this.defeated) {
+        image(Assets_t.ENEMY2_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.ENEMY_TURRET, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3/4, TILE_WIDTH, TILE_HEIGHT);
+    }
+    
+};
+
+enemy2Obj.prototype.wander = function() {
+    this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
+    this.position.add(this.step);
+    // this.wanderAngle += random(-15, 15);
+
+    this.wanderDistance--;
+    if (this.wanderDistance < 0) {
+        this.wanderDistance = random(70, 700);
+        this.wanderAngle += random(-90, 90);
+    }
+
+    if (this.position.x > 840) {this.position.x = 10;}
+    else if (this.position.x < 5) {this.position.x = 800;}
+    // if (this.position.y > 520) {this.position.y = -20;}
+    // else if (this.position.y < -20) {this.position.y = 520;}
 };
 
 var bossEnemy = function(x, y) {
@@ -622,8 +691,8 @@ var gameObj = function() {
         "              ",  // row: 8  - 160  px
         "              ",  // row: 9  - 180  px
         "              ",  // row: 10 - 200  px
-        "          x   ",  // row: 11 - 220  px
-        "    x         ",  // row: 12 - 240  px
+        "          x   ",  // row: 11 - 220  px xxxxx
+        "    x         ",  // row: 12 - 240  px xxxxx
         "              ",  // row: 13 - 260  px
         "              ",  // row: 14 - 280  px
         "              ",  // row: 15 - 300  px
@@ -631,10 +700,10 @@ var gameObj = function() {
         "              ",  // row: 17 - 340  px
         "              ",  // row: 18 - 360  px
         "              ",  // row: 19 - 380  px
-        "    t      x  ",  // row: 20 - 400  px
+        "    t      x  ",  // row: 20 - 400  px second t is a x
         "              ",  // row: 21 - 420  px
         "              ",  // row: 22 - 440  px
-        "    x         ",  // row: 23 - 460  px
+        "    x         ",  // row: 23 - 460  px  xxxxxx
         "              ",  // row: 24 - 480  px
         "              ",  // row: 25 - 500  px
         "              ",  // row: 26 - 520  px
@@ -667,24 +736,24 @@ var gameObj = function() {
     this.tilemap2 = [
         "              ",  // row: 1  - 20   px
         "              ",  // row: 2  - 40   px
-        " x        t   ",  // row: 3  - 60   px
+        " x        t   ",  // row: 3  - 60   px first t is x
         "              ",  // row: 4  - 80   px
-        "      x       ",  // row: 5  - 100  px
+        "      x       ",  // row: 5  - 100  px xxxxx
         "              ",  // row: 6  - 120  px
         "              ",  // row: 7  - 140  px
         "              ",  // row: 8  - 160  px
         "    t  t      ",  // row: 9  - 180  px
         "              ",  // row: 10 - 200  px
         "              ",  // row: 11 - 220  px
-        "           x  ",  // row: 12 - 240  px
+        "           x  ",  // row: 12 - 240  px  xxxx
         "              ",  // row: 13 - 260  px
-        "  x           ",  // row: 14 - 280  px
+        "  x           ",  // row: 14 - 280  px xxxx
         "              ",  // row: 15 - 300  px
         "         t    ",  // row: 16 - 320  px
-        "            x ",  // row: 17 - 340  px
+        "            x ",  // row: 17 - 340  px xxxxx
         "              ",  // row: 18 - 360  px
         "              ",  // row: 19 - 380  px
-        "     t     x  ",  // row: 20 - 400  px
+        "     t     x  ",  // row: 20 - 400  px second t is x
         "              ",  // row: 21 - 420  px
         "              ",  // row: 22 - 440  px
         "              ",  // row: 23 - 460  px
@@ -693,7 +762,7 @@ var gameObj = function() {
         "              ",  // row: 26 - 520  px
         "         t    ",  // row: 27 - 540  px
         "              ",  // row: 28 - 560  px
-        "    x         ",  // row: 29 - 580  px
+        "    x         ",  // row: 29 - 580  px xxxxxx
         "              ",  // row: 30 - 600  px
         "              ",  // row: 31 - 620  px
         "              ",  // row: 32 - 640  px
@@ -701,7 +770,7 @@ var gameObj = function() {
         "              ",  // row: 34 - 680  px
         "          t   ",  // row: 35 - 700  px
         "              ",  // row: 36 - 720  px
-        "      x       ",  // row: 37 - 740  px
+        "      x       ",  // row: 37 - 740  px xxxxxx
         "              ",  // row: 38 - 760  px
         "              ",  // row: 39 - 780  px
         "              ",  // row: 40 - 800  px
@@ -710,7 +779,7 @@ var gameObj = function() {
         "          t   ",  // row: 43 - 860  px
         "              ",  // row: 44 - 880  px
         "              ",  // row: 45 - 900  px
-        "   x          ",  // row: 46 - 920  px
+        "   x          ",  // row: 46 - 920  px xxxxx
         "              ",  // row: 47 - 940  px
         "              ",  // row: 48 - 960  px
         "              ",  // row: 49 - 980  px
@@ -787,6 +856,7 @@ gameObj.prototype.drawLevelOne = function(y, loopIteration) {
     if (loopIteration === 0) {  // First iteration
         for (var i = 0; i < GAME_INST.enemyObjects.length; i++) { // enemy objects
             GAME_INST.enemyObjects[i].draw();
+            GAME_INST.enemyObjects[i].wander();
         }
         for (var i = 0; i < GAME_INST.gameObjects.length; i++) { // collectable objects
             if (!GAME_INST.gameObjects[i].collected) {
@@ -797,6 +867,7 @@ gameObj.prototype.drawLevelOne = function(y, loopIteration) {
     else if (loopIteration === 1) {
         for (var i = 0; i < GAME_INST.enemyObjects2.length; i++) { // enemy objects
             GAME_INST.enemyObjects2[i].draw();
+            GAME_INST.enemyObjects2[i].wander();
         }
         for (var i = 0; i < GAME_INST.gameObjects2.length; i++) { // collectable objects
             if (!GAME_INST.gameObjects[i].collected) {
