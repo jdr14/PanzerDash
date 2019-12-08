@@ -414,7 +414,7 @@ bulletObj.prototype.draw = function(c) {
         noStroke();
         if (c === 1)
         {
-            fill(122, 120, 113);
+            fill(82, 80, 83);
             rect(this.position.x - (this.w*2) / 2, this.position.y, (this.w*2), (2*this.l));
             ellipse(this.position.x, this.position.y, (2*this.w), (2*this.w));
         }
@@ -497,7 +497,7 @@ bulletObj.prototype.TankCollsionCheck = function() {
     var t = dist(round(this.position.x), round(this.position.y), panzer.x+ TILE_WIDTH, panzer.y) < 30;
 
     if (within_x && within_y && (this.hit !== 1)) {
-        panzer.health-= this.damage;
+        panzer.health -= this.damage;
         this.hit = 1;
         within_x = false;
         return;
@@ -549,6 +549,9 @@ var tankObj = function(x, y, s) {
     this.fireRate = 8;
     this.autoFireEnabled = false;
     this.health = 100;
+    this.boostAvailable = 100;
+    this.rechargeNeeded = false;
+    this.rechargeTime = 300;
     this.objectType = ObjectType_e.TANK;
     this.miniGunEnabled = false;
     this.shotGunEnabled = false;
@@ -569,11 +572,23 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     if (DISABLE.A === false && self.x > 0) {
         self.x -= self.speed;
     }
-    if (DISABLE.SPACE === false) {
-        self.speed = 4;
+    if (DISABLE.SPACE === false && self.boostAvailable > 0 && !self.rechargeNeeded) {
+        self.speed = 5;
+        self.boostAvailable--;  // Decrement the available boost left
+        if (self.boostAvailable === 0) {
+            self.rechargeNeeded = true;
+        }
     }
     else {
         self.speed = 2;
+        if (self.rechargeNeeded) {
+            self.rechargeTime -= 1;
+        }
+        if (self.rechargeTime === 0) {  // Force the recharge to take twice as long as the player can spend the boost
+            self.rechargeNeeded = false;
+            self.boostAvailable = 100;
+            self.rechargeTime = 300;
+        }
     }
 
     if (!DISABLE.DOWN) {
@@ -582,14 +597,14 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     }
     if (!DISABLE.UP || this.autoFireEnabled) {  // Fire the gun
         if (frameCount % this.fireRate === 0) {
-            if (!this.shotGunEnabled && !this.miniGunEnabled) {
+            if (!this.shotGunEnabled) {
                 this.bullets.push(new bulletObj(this.x + TILE_WIDTH * 2 / 3, this.y, this.bulletSpeed));
             }
-            else if (this.shotGunEnabled) {
+            else {  // Shotgun enabled
                 this.bullets.push(new shotBulletObj(this.x + TILE_WIDTH * 2 / 3, this.y, this.bulletSpeed));
             }
             if (this.miniGunEnabled) {
-                this.fireRate = 2;
+                this.fireRate = 4;
             }
         }   
     }
@@ -877,12 +892,16 @@ var tankUpgradedObj = function(x, y, s) {
     this.prevFrameCount = 0;
     this.fireRate = 8;
 
+    self.boostAvailable = 100;
+    self.rechargeNeeded = false;
+    self.rechargeTime = 300;
+
     this.health = 100;
     this.miniGunEnabled = false;
     this.shotGunEnabled = false;
 };
 
-tankUpgradedObj.prototype.draw = function(frameCount) {
+tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
     var self = this;
     if (DISABLE.W === false) {
         self.y -= self.speed;
@@ -896,11 +915,23 @@ tankUpgradedObj.prototype.draw = function(frameCount) {
     if (DISABLE.A === false && self.x > 0) {
         self.x -= self.speed;
     }
-    if (DISABLE.SPACE === false) {
+    if (DISABLE.SPACE === false && self.boostAvailable > 0 && !self.rechargeNeeded) {
         self.speed = 5;
+        self.boostAvailable--;  // Decrement the available boost left
+        if (self.boostAvailable === 0) {
+            self.rechargeNeeded = true;
+        }
     }
     else {
         self.speed = 2;
+        if (self.rechargeNeeded) {
+            self.rechargeTime--;
+        }
+        if (self.rechargeTime === 0) {  // Force the recharge to take twice as long as the player can spend the boost
+            self.rechargeNeeded = false;
+            self.boostAvailable = 100;
+            self.rechargeTime = 300;
+        }
     }
     image(Assets_t.PANZER, this.x, this.y, TILE_WIDTH, TILE_HEIGHT);
 
@@ -911,14 +942,14 @@ tankUpgradedObj.prototype.draw = function(frameCount) {
     }
     if (!DISABLE.UP || this.autoFireEnabled) {  // Fire the gun
         if (frameCount % this.fireRate === 0) {
-            if (!this.shotGunEnabled && !this.miniGunEnabled) {
+            if (!this.shotGunEnabled) {
                 this.bullets.push(new bulletObj(this.x + TILE_WIDTH * 2 / 3, this.y, this.bulletSpeed));
             }
-            else if (this.shotGunEnabled) {
+            else {  // Shotgun enabled
                 this.bullets.push(new shotBulletObj(this.x + TILE_WIDTH * 2 / 3, this.y, this.bulletSpeed));
             }
             if (this.miniGunEnabled) {
-                this.fireRate = 2;
+                this.fireRate = 4;
             }
         }   
         // if (frameCount % 5 === 0) { 
@@ -993,8 +1024,6 @@ tankUpgradedObj.prototype.draw = function(frameCount) {
     //     this.tankShells[i].draw(this.currGunAngle);
     // }
 };
-
-
 
 var enemy1Obj = function(x, y) {
     this.position = new PVector(x, y);
@@ -1213,6 +1242,9 @@ var drawStartScreen = function() {
     }
 };
 
+/*
+ * The game object contains all game relevant data
+ */ 
 var gameObj = function() {
     // Level 1 tilemaps
     this.tilemap = [];
@@ -1257,6 +1289,17 @@ var gameObj = function() {
     this.enemyCount = 0;
 };
 
+// Probability generator function simulates rolling dice and getting a number back from 1 -> 12
+var rollOfTheDice = function() {
+    return round(random(1, 12));
+};
+
+/*
+ * Options for the difficulty of the tilemap
+ * EASY = fewer enemies, easy to medium enemies only, most health pickups
+ * MEDIUM = moderate amount of enemies, easy to hard enemies, fewer health pickups
+ * HARD = most amount of enemies, easy to expert enemies, fewest health pickups
+ */
 var MapDifficulty_e = {
     EASY: 0,
     MEDIUM: 1,
@@ -1277,9 +1320,24 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
 
     switch(difficulty) { // Generate a random tilemap based on the difficulty specified
         
+        /* 
+         * ----------------------------
+         * |  Easy tilemap generator  |
+         * ----------------------------
+         */
         case MapDifficulty_e.EASY:
+
+            // Ratio of enemy types to be chosen from and inserted in the lines
             var enemySymbols = ['a', 'a', 'b'];
-            var probability = [0, 0, 0, 0, 0, 1, 1, 2];
+
+            // Array to control the number of enemies spawned per line
+            var probability = [0, 0, 0, 0, 0, 1, 1, 2]; 
+
+            // Most amount of health pickups allowed
+            var maxHealthPickups = 5;
+            var numHealthPickups = round(random(1, maxHealthPickups)); 
+            var healthPickUpCount = 0;
+
             for (var i = 0; i < TILE_MAP_LENGTH - 8; i++) {
                 var numEnemiesInLine = probability[round(random(0, probability.length - 1))];
                 var enemyLocation = [-1, -1];  // Locations to be > 0 && < 12
@@ -1311,7 +1369,13 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 for (var j = 0; j < lineLength; j++) {
                     
                     if (j !== enemyLocation[0] && j !== enemyLocation[1]) {
-                        line += " ";
+                        if (rollOfTheDice() <= 2 && healthPickUpCount !== numHealthPickups) {
+                            line += 'h';
+                            healthPickUpCount++;  // Use incremented count to keep track of the number of health packages placed
+                        }
+                        else {
+                            line += " ";
+                        }
                     }
                     if (j === enemyLocation[0]) {
                         // Pick a random enemy in the potential enemy
@@ -1343,9 +1407,23 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
             tMap.push("            ");
             break;
 
+        /* 
+         * ------------------------------
+         * |  Medium tilemap generator  |
+         * ------------------------------
+         */
         case MapDifficulty_e.MEDIUM:
+            // Ratio of enemy types to be chosen from and inserted in the lines
             var enemySymbols = ['a', 'a', 'b', 'c'];
+            
+            // Array to control the number of enemies spawned per line
             var probability = [0, 0, 0, 0, 1, 1, 1, 2, 2, 3];
+
+            // Most amount of health pickups allowed
+            var maxHealthPickups = 3;
+            var numHealthPickups = round(random(1, maxHealthPickups)); 
+            var healthPickUpCount = 0;
+
             for (var i = 0; i < TILE_MAP_LENGTH - 8; i++) {
                 var numEnemiesInLine = probability[round(random(0, probability.length - 1))];
                 var enemyLocation = [-1, -1, -1];  // Locations to be > 0 && < 12
@@ -1392,7 +1470,13 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 for (var j = 0; j < lineLength; j++) {
                     
                     if (j !== enemyLocation[0] && j !== enemyLocation[1]) {
-                        line += " ";
+                        if (rollOfTheDice() <= 4 && healthPickUpCount !== numHealthPickups) {
+                            line += 'h';
+                            healthPickUpCount++;  // Use incremented count to keep track of the number of health packages placed
+                        }
+                        else {
+                            line += " ";
+                        }
                     }
                     if (j === enemyLocation[0]) {
                         // Pick a random enemy in the potential enemy
@@ -1429,9 +1513,21 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
             tMap.push("            ");
             break;
 
+        /* 
+         * ----------------------------
+         * |  Hard tilemap generator  |
+         * ----------------------------
+         */
         case MapDifficulty_e.HARD:
+            // Ratio of enemy types to be chosen from and inserted in the lines
             var enemySymbols = ['a', 'a', 'a', 'b', 'b', 'c', 'c', 'd'];
+
+            // Array to control the number of enemies spawned per line
             var probability = [0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4];
+            
+            // Most amount of health pickups allowed
+            var numHealthPickups = 1;
+            var healthPickUpCount = 0;
 
             for (var i = 0; i < TILE_MAP_LENGTH - 8; i++) {
                 var numEnemiesInLine = probability[round(random(0, probability.length - 1))];
@@ -1499,7 +1595,13 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 for (var j = 0; j < lineLength; j++) {
                     
                     if (j !== enemyLocation[0] && j !== enemyLocation[1]) {
-                        line += " ";
+                        if (rollOfTheDice() === 1 && healthPickUpCount !== numHealthPickups) {
+                            line += 'h';
+                            healthPickUpCount++;  // Use incremented count to keep track of the number of health packages placed
+                        }
+                        else {
+                            line += " ";
+                        }
                     }
                     if (j === enemyLocation[0]) {
                         // Pick a random enemy in the potential enemy
@@ -1905,31 +2007,52 @@ var animatedHelpTransition = function(animationCount) {
 prevTime = 0;
 var loseAnimationLength = 5;
 var numLoseAnimationFrames = 8;
-var animatedLoseScreen = function(animationCount) {
+var animatedLoseScreen = function(animationCount, score) {
+    stroke();
+    fill(240, 30, 30);
+    var x_pos = 500;
+    var y_pos = 350;
     if (animationCount < loseAnimationLength) {
         image(GameScreens_t.LOSE_SCREEN_TRANSITIONS[0], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(32);
+        text("Final Score: " + score, x_pos, y_pos);
     }
     else if (animationCount >= loseAnimationLength * 1 && animationCount < loseAnimationLength * 2) {
         image(GameScreens_t.LOSE_SCREEN_TRANSITIONS[1], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(33);
+        text("Final Score: " + score, x_pos - 1, y_pos - 1);
     }
     else if (animationCount >= loseAnimationLength * 2 && animationCount < loseAnimationLength * 3) {
         image(GameScreens_t.LOSE_SCREEN_TRANSITIONS[2], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(34);
+        text("Final Score: " + score, x_pos - 2, y_pos - 2);
     }
     else if (animationCount >= loseAnimationLength * 3 && animationCount < loseAnimationLength * 4) {
         image(GameScreens_t.LOSE_SCREEN_TRANSITIONS[3], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(33);
+        text("Final Score: " + score, x_pos - 1, y_pos - 1);
     }
     else if (animationCount >= loseAnimationLength * 4 && animationCount < loseAnimationLength * 5) {
         image(GameScreens_t.LOSE_SCREEN_TRANSITIONS[4], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(32);
+        text("Final Score: " + score, x_pos, y_pos);
     }
     else if (animationCount >= loseAnimationLength * 5 && animationCount < loseAnimationLength * 6) {
         image(GameScreens_t.LOSE_SCREEN_TRANSITIONS[5], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(31);
+        text("Final Score: " + score, x_pos + 1, y_pos + 1);
     }
     else if (animationCount >= loseAnimationLength * 6 && animationCount < loseAnimationLength * 7) {
         image(GameScreens_t.LOSE_SCREEN_TRANSITIONS[6], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(30);
+        text("Final Score: " + score, x_pos + 2, y_pos + 2);
     }
     else if (animationCount >= loseAnimationLength * 7 && animationCount < loseAnimationLength * 8) {
         image(GameScreens_t.LOSE_SCREEN_TRANSITIONS[7], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(31);
+        text("Final Score: " + score, x_pos + 1, y_pos + 1);
     }
+    noStroke();
 };
 
 /*
@@ -1938,79 +2061,132 @@ var animatedLoseScreen = function(animationCount) {
 prevTime = 0;
 var winAnimationLength = 5;
 var numWinAnimationFrames = 24;
-var animatedWinScreen = function(animationCount) {
+var animatedWinScreen = function(animationCount, score) {
+    stroke();
+    fill(240, 30, 30);
+    var x_pos = 500;
+    var y_pos = 300;
     if (animationCount < winAnimationLength) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[0], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(32);
+        text("Final Score: " + score, x_pos, y_pos);
     }
     else if (animationCount >= winAnimationLength * 1 && animationCount < winAnimationLength * 2) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[1], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(31);
+        text("Final Score: " + score, x_pos + 1, y_pos + 1);
     }
     else if (animationCount >= winAnimationLength * 2 && animationCount < winAnimationLength * 3) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[2], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(30);
+        text("Final Score: " + score, x_pos + 2, y_pos + 2);
     }
     else if (animationCount >= winAnimationLength * 3 && animationCount < winAnimationLength * 4) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[3], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(31);
+        text("Final Score: " + score, x_pos + 1, y_pos + 1);
     }
     else if (animationCount >= winAnimationLength * 4 && animationCount < winAnimationLength * 5) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[4], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(32);
+        text("Final Score: " + score, x_pos, y_pos);
     }
     else if (animationCount >= winAnimationLength * 5 && animationCount < winAnimationLength * 6) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[5], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(33);
+        text("Final Score: " + score, x_pos - 1, y_pos - 1);
     }
     else if (animationCount >= winAnimationLength * 6 && animationCount < winAnimationLength * 7) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[6], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(34);
+        text("Final Score: " + score, x_pos - 2, y_pos - 2);
     }
     else if (animationCount >= winAnimationLength * 7 && animationCount < winAnimationLength * 8) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[7], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(33);
+        text("Final Score: " + score, x_pos - 1, y_pos - 1);
     }
     else if (animationCount >= winAnimationLength * 8 && animationCount < winAnimationLength * 9) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[8], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(32);
+        text("Final Score: " + score, x_pos, y_pos);
     }
     else if (animationCount >= winAnimationLength * 9 && animationCount < winAnimationLength * 10) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[9], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(31);
+        text("Final Score: " + score, x_pos + 1, y_pos + 1);
     }
     else if (animationCount >= winAnimationLength * 10 && animationCount < winAnimationLength * 11) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[10], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(30);
+        text("Final Score: " + score, x_pos + 2, y_pos + 2);
     }
     else if (animationCount >= winAnimationLength * 11 && animationCount < winAnimationLength * 12) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[11], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(31);
+        text("Final Score: " + score, x_pos + 1, y_pos + 1);
     }
     else if (animationCount >= winAnimationLength * 12 && animationCount < winAnimationLength * 13) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[12], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(32);
+        text("Final Score: " + score, x_pos, y_pos);
     }
     else if (animationCount >= winAnimationLength * 13 && animationCount < winAnimationLength * 14) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[13], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(33);
+        text("Final Score: " + score, x_pos - 1, y_pos - 1);
     }
     else if (animationCount >= winAnimationLength * 14 && animationCount < winAnimationLength * 15) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[14], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(34);
+        text("Final Score: " + score, x_pos - 2, y_pos - 2);
     }
     else if (animationCount >= winAnimationLength * 15 && animationCount < winAnimationLength * 16) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[15], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(33);
+        text("Final Score: " + score, x_pos - 1, y_pos - 1);
     }
     else if (animationCount >= winAnimationLength * 16 && animationCount < winAnimationLength * 17) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[16], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(32);
+        text("Final Score: " + score, x_pos, y_pos);
     }
     else if (animationCount >= winAnimationLength * 17 && animationCount < winAnimationLength * 18) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[17], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(31);
+        text("Final Score: " + score, x_pos + 1, y_pos + 1);
     }
     else if (animationCount >= winAnimationLength * 18 && animationCount < winAnimationLength * 19) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[18], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(30);
+        text("Final Score: " + score, x_pos + 2, y_pos + 2);
     }
     else if (animationCount >= winAnimationLength * 19 && animationCount < winAnimationLength * 20) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[19], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(31);
+        text("Final Score: " + score, x_pos + 1, y_pos + 1);
     }
     else if (animationCount >= winAnimationLength * 20 && animationCount < winAnimationLength * 21) {
-        image(GameScreens_t.WIN_SCREEN_TRANSITIONS[20], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        image(GameScreens_t.WIN_SCREEN_TRANSITIONS[20], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);        
+        textSize(32);
+        text("Final Score: " + score, x_pos, y_pos);
     }
     else if (animationCount >= winAnimationLength * 21 && animationCount < winAnimationLength * 22) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[21], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(33);
+        text("Final Score: " + score, x_pos - 1, y_pos - 1);
     }
     else if (animationCount >= winAnimationLength * 22 && animationCount < winAnimationLength * 23) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[22], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(34);
+        text("Final Score: " + score, x_pos - 2, y_pos - 2);
     }
     else if (animationCount >= winAnimationLength * 23 && animationCount < winAnimationLength * 24) {
         image(GameScreens_t.WIN_SCREEN_TRANSITIONS[23], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        textSize(33);
+        text("Final Score: " + score, x_pos - 1, y_pos - 1);
     }
+    noStroke();
 };
 
 
@@ -2115,7 +2291,7 @@ var draw = function() {
          * level)
          */
         case GameState_e.ANIMATED_LOAD_TRANSITION: 
-            changeGameState(GameState_e.LEVEL_THREE)    // change back to one
+            changeGameState(GameState_e.LEVEL_TWO)    // change back to one
             break;
 
         /*
@@ -2145,12 +2321,35 @@ var draw = function() {
                 changeGameState(GameState_e.LEVEL_TWO);
             }
 
+            // Life bar 
+            stroke();
+            fill(50, 230, 50);
+            rect(80, -loopCount + SCREEN_HEIGHT * 1 / 30, 100, 10);
+            fill(240, 30, 30);
+            rect(180 - (100 - panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - panzer.health, 10);
+
+            // Boost bar
+            fill(30, 30, 240);
+            rect(100, -loopCount + SCREEN_HEIGHT * 23 / 24, 100, 10);
+            fill(240, 30, 30);
+            if (panzer.boostAvailable > 0) {
+                rect(200 - (100 - panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - panzer.boostAvailable, 10);
+                text("BOOST:  " + panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+            }
+            else {
+                rect(
+                    200 - (floor(panzer.rechargeTime / 3)), 
+                    -loopCount + SCREEN_HEIGHT * 23 / 24, 
+                    floor(panzer.rechargeTime / 3), 
+                    10);
+                text("BOOST:  " + (100 - floor(panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+            } 
+
             // Display character's health as a part of the H.U.D.
-            stroke()
-            fill(230, 30, 30);
+            fill(240, 30, 30);
             textSize(14);
-            text("HEALTH: " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
-            text("SCORE: " + GAME_INST.score*10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("LIFE:  " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
             noStroke();
             
             // 1st wave of enemies contained in the first tilemap defined in 
@@ -2186,7 +2385,7 @@ var draw = function() {
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                panzer.health += 250;
+                panzer.health += 10;
             }
 
             // Case: Shotgun collected
@@ -2228,12 +2427,36 @@ var draw = function() {
                 changeGameState(GameState_e.LEVEL_THREE);
             }
 
+            // Life bar 
+            stroke();
+            fill(50, 230, 50);
+            rect(80, -loopCount + SCREEN_HEIGHT * 1 / 30, 100, 10);
+            fill(240, 30, 30);
+            rect(180 - (100 - panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - panzer.health, 10);
+
+            // Boost bar
+            fill(30, 30, 240);
+            rect(100, -loopCount + SCREEN_HEIGHT * 23 / 24, 100, 10);
+            fill(240, 30, 30);
+            if (panzer.boostAvailable > 0) {
+                rect(200 - (100 - panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - panzer.boostAvailable, 10);
+                text("BOOST:  " + panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+            }
+            else {
+                rect(
+                    200 - (floor(panzer.rechargeTime / 3)), 
+                    -loopCount + SCREEN_HEIGHT * 23 / 24, 
+                    floor(panzer.rechargeTime / 3), 
+                    10);
+                text("BOOST:  " + (100 - floor(panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+            } 
+
             // Display character's health as a part of the H.U.D.
-            stroke()
-            fill(230, 30, 30);
+            //stroke()
+            fill(240, 30, 30);
             textSize(14);
-            text("HEALTH: " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
-            text("SCORE: " + GAME_INST.score*10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("LIFE:  " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
             noStroke();
             
             // 1st wave of enemies contained in the first tilemap defined in 
@@ -2269,7 +2492,7 @@ var draw = function() {
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                panzer.health += 250;
+                panzer.health += 10;
             }
 
             // Case: Shotgun collected
@@ -2308,15 +2531,38 @@ var draw = function() {
             if (loopIterations === 2) {  
                 loopCount = -3400;
                 loopIterations = 0;
-                changeGameState(GameState_e.ANIMATED_WIN_TRANSITION)
+                changeGameState(GameState_e.ANIMATED_WIN_TRANSITION);
             }
 
+            // Life bar 
+            stroke();
+            fill(50, 230, 50);
+            rect(80, -loopCount + SCREEN_HEIGHT * 1 / 30, 100, 10);
+            fill(240, 30, 30);
+            rect(180 - (100 - panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - panzer.health, 10);
+
+            // Boost bar
+            fill(30, 30, 240);
+            rect(100, -loopCount + SCREEN_HEIGHT * 23 / 24, 100, 10);
+            fill(240, 30, 30);
+            if (panzer.boostAvailable > 0) {
+                rect(200 - (100 - panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - panzer.boostAvailable, 10);
+                text("BOOST:  " + panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+            }
+            else {
+                rect(
+                    200 - (floor(panzer.rechargeTime / 3)), 
+                    -loopCount + SCREEN_HEIGHT * 23 / 24, 
+                    floor(panzer.rechargeTime / 3), 
+                    10);
+                text("BOOST:  " + (100 - floor(panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+            } 
+
             // Display character's health as a part of the H.U.D.
-            stroke()
-            fill(230, 30, 30);
+            fill(240, 30, 30);
             textSize(14);
-            text("HEALTH: " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
-            text("SCORE: " + GAME_INST.score*10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("LIFE:  " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
             noStroke();
             
             // 1st wave of enemies contained in the first tilemap defined in 
@@ -2352,7 +2598,7 @@ var draw = function() {
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                panzer.health += 250;
+                panzer.health += 10;
             }
 
             // Case: Shotgun collected
@@ -2425,8 +2671,20 @@ var draw = function() {
          * |  CREDITS STATE  |
          * -------------------
          */
-        case GameState_e.CREDITS:  // TODO: Placeholder for end credits
-            changeGameState(GameState_e.START_SCREEN)
+        case GameState_e.CREDITS:  // Placeholder for end credits animation in a future version/release of the game
+            // reinitialize all game variables for the next iteration of game play
+            loopCount = -3400;
+            panzer = createTank(
+                SCREEN_WIDTH / 2 - TILE_WIDTH / 2, 
+                -loopCount + SCREEN_HEIGHT * 2 / 3, 
+                tankSpeed, 
+                TankOptions_e.BASIC);
+            upgradeCollected = false;
+            tankUpgraded = false;
+            loopIterations = 0;            
+
+            // Return to main menu (start screen)
+            changeGameState(GameState_e.START_SCREEN);
             break;
         
         /*
@@ -2434,8 +2692,8 @@ var draw = function() {
          * |  ANIMATED LOSE TRANSITION STATE  |
          * ------------------------------------
          */
-        case GameState_e.ANIMATED_LOSE_TRANSITION:  // TODO: Placeholder for future edits for transitioning to lose screen
-            changeGameState(GameState_e.LOSE_SCREEN)
+        case GameState_e.ANIMATED_LOSE_TRANSITION:  // Placeholder for future edits for transitioning to lose screen
+            changeGameState(GameState_e.LOSE_SCREEN);
             break;
 
         /*
@@ -2447,12 +2705,12 @@ var draw = function() {
             if(animationCount >= loseAnimationLength * numLoseAnimationFrames) {
                 animationCount = 0;
             }
-            animatedLoseScreen(animationCount)
+            animatedLoseScreen(animationCount, GAME_INST.score * GAME_INST.scoreMultiplier);
             animationCount++;
 
             if (MouseState.PRESSED) {
                 MouseState.PRESSED = 0;
-                changeGameState(GameState_e.CREDITS)
+                changeGameState(GameState_e.CREDITS);
             }
             break;
 
@@ -2462,7 +2720,7 @@ var draw = function() {
          * -----------------------------------
          */
         case GameState_e.ANIMATED_WIN_TRANSITION:  // TODO: Placeholder for future edits for transitioning to win screen
-            changeGameState(GameState_e.WIN_SCREEN)
+            changeGameState(GameState_e.WIN_SCREEN);
             break;
 
         /*
@@ -2474,20 +2732,13 @@ var draw = function() {
             if(animationCount >= winAnimationLength * numWinAnimationFrames) {
                 animationCount = 0;
             }
-            animatedWinScreen(animationCount)
+            animatedWinScreen(animationCount, GAME_INST.score * GAME_INST.scoreMultiplier);
             animationCount++;
             
             // Display end game credits
             if (MouseState.PRESSED) {
-                changeGameState(GameState_e.CREDITS)
+                changeGameState(GameState_e.CREDITS);
             }
-            //background(0, 0, 0);
-            //stroke()
-            //fill(255, 255, 255);
-            //textSize(fontSize);
-            //text("YOU WIN!!!", 200, 280);
-            //noStroke();
-            //println("TEMPORARY: WIN_SCREEN");
             break;
         
         /*
