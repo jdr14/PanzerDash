@@ -403,7 +403,7 @@ var bulletObj = function(x, y, s) {
     this.w = 4;  // width
     this.l = 7;  // length
     this.speed = new PVector(0, s);
-    this.damage = 1;
+    this.damage = 2;
     this.hit = 0;
 };
 
@@ -1058,7 +1058,7 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
             this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObjects2);
         }
         else if (loopIterations === 1 && currentLevel === GameState_e.LEVEL_TWO) { // Level 2: 2nd wave of enemies (2nd map iteration)
-            this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObject4);
+            this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObjects4);
         }
         else if (loopIterations === 1 && currentLevel === GameState_e.LEVEL_THREE) { // Level 3: 2nd wave of enemies (2nd map iteration)
             this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObjects6);
@@ -1092,7 +1092,7 @@ var enemy1Obj = function(x, y) {
     this.wanderDistance = random(0, 100);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 16;
+    this.health = 20;
     this.objectType = ObjectType_e.ENEMY;
 };
 
@@ -1129,7 +1129,7 @@ var enemy2Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 26;
+    this.health = 30;
     this.bullets = [];
     this.objectType = ObjectType_e.ENEMY;
 };
@@ -1180,7 +1180,7 @@ var enemy3Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 30;
+    this.health = 40;
     this.bullets = [];
     this.objectType = ObjectType_e.ENEMY;
 };
@@ -1229,7 +1229,7 @@ var enemy4Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 40;
+    this.health = 50;
     this.bullets = [];
     this.objectType = ObjectType_e.ENEMY;
 };
@@ -1946,21 +1946,6 @@ gameObj.prototype.initialize = function() {
         }
     }
 };
-
-/*
-var displayScore = function() {
-    fill(255, 50, 50);
-    textSize(18);
-    text("Score = " + (GAME_INST.score * 10), 170, 320);
-};
-
-var displayCredits = function() {
-    fill(225, 225, 225);
-    textSize(14);
-    text("Artwork by Alex Shammas", 20, 360);
-    text("Code by Joey Rodgers", 20, 380);
-}
-*/
 
 var createTank = function(x, y, s, tankType) {
     if (tankType === TankOptions_e.BASIC) {
