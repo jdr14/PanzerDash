@@ -1058,7 +1058,7 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
             this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObjects2);
         }
         else if (loopIterations === 1 && currentLevel === GameState_e.LEVEL_TWO) { // Level 2: 2nd wave of enemies (2nd map iteration)
-            this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObject4);
+            this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObjects4);
         }
         else if (loopIterations === 1 && currentLevel === GameState_e.LEVEL_THREE) { // Level 3: 2nd wave of enemies (2nd map iteration)
             this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObjects6);
