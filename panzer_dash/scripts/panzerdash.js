@@ -904,9 +904,9 @@ var tankUpgradedObj = function(x, y, s) {
     this.prevFrameCount = 0;
     this.fireRate = 8;
 
-    self.boostAvailable = 100;
-    self.rechargeNeeded = false;
-    self.rechargeTime = 300;
+    this.boostAvailable = 100;
+    this.rechargeNeeded = false;
+    this.rechargeTime = 300;
 
     this.health = 100;
     this.miniGunEnabled = false;
@@ -1364,6 +1364,13 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
             var maxHealthPickups = 5;
             var numHealthPickups = round(random(1, maxHealthPickups)); 
             var healthPickUpCount = 0;
+            var healthLines = [
+                "      h     ",
+                "         h  ",
+                "  h         ",
+                "     h      ",
+            ];
+            var count = 0;
 
             for (var i = 0; i < TILE_MAP_LENGTH - 8; i++) {
                 var numEnemiesInLine = probability[round(random(0, probability.length - 1))];
@@ -1391,28 +1398,28 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 enemyLocation.sort(); 
                 
                 var line = "";  // Create a line to be added to the pagemap later
-
+                
                 // Assemble the line to add to the tilemap
-                for (var j = 0; j < lineLength; j++) {
-                    
-                    if (j !== enemyLocation[0] && j !== enemyLocation[1]) {
-                        if (rollOfTheDice() <= 2 && healthPickUpCount !== numHealthPickups) {
-                            line += 'h';
-                            healthPickUpCount++;  // Use incremented count to keep track of the number of health packages placed
-                        }
-                        else {
+                if (i % 10 === 0 && i != 0 && count < healthLines.length && iterNum === 2) {
+                    line = healthLines[count];
+                    count++;
+                }
+                else {
+                    for (var j = 0; j < lineLength; j++) {
+                        
+                        if (j !== enemyLocation[0] && j !== enemyLocation[1]) {
                             line += " ";
                         }
-                    }
-                    if (j === enemyLocation[0]) {
-                        // Pick a random enemy in the potential enemy
-                        var t = round(random(0, enemySymbols.length - 1))
-                        line += enemySymbols[t];
-                    }
-                    if (j === enemyLocation[1]) {
-                        // Pick a random enemy in the potential enemy
-                        var t = round(random(0, enemySymbols.length - 1))
-                        line += enemySymbols[t];
+                        if (j === enemyLocation[0]) {
+                            // Pick a random enemy in the potential enemy
+                            var t = round(random(0, enemySymbols.length - 1))
+                            line += enemySymbols[t];
+                        }
+                        if (j === enemyLocation[1]) {
+                            // Pick a random enemy in the potential enemy
+                            var t = round(random(0, enemySymbols.length - 1))
+                            line += enemySymbols[t];
+                        }
                     }
                 }
 
@@ -1622,7 +1629,7 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 for (var j = 0; j < lineLength; j++) {
                     
                     if (j !== enemyLocation[0] && j !== enemyLocation[1]) {
-                        if (rollOfTheDice() === 1 && healthPickUpCount !== numHealthPickups) {
+                        if (round(random(1, 50)) === 15 && healthPickUpCount !== numHealthPickups) {
                             line += 'h';
                             healthPickUpCount++;  // Use incremented count to keep track of the number of health packages placed
                         }
@@ -2404,9 +2411,15 @@ var draw = function() {
             if (upgradeCollected === ObjectType_e.BASIC_GUN && !tankUpgraded) {  
                 var autoFireEnabled = panzer.autoFireEnabled;
                 var currentHealth = panzer.health;
+                var boostAvailable = panzer.boostAvailable;
+                var rechargeTime = panzer.rechargeTime;
+                var rechargeNeeded = panzer.reachardNeeded;
                 panzer = createTank(panzer.x, panzer.y, tankSpeed, TankOptions_e.UPGRADED);  // Create the upgraded tank
                 panzer.autoFireEnabled = autoFireEnabled;  // Remember previous tank state
                 panzer.health = currentHealth;  // Update the upgraded tanks health 
+                panzer.boostAvailable = boostAvailable;
+                panzer.rechargeTime = rechargeTime;
+                panzer.rechargeNeeded = rechargeNeeded;
                 tankUpgraded = true;  // Control variable to ensure only 1x execution of this logical block
             }
 
