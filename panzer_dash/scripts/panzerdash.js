@@ -428,6 +428,19 @@ bulletObj.prototype.draw = function(c) {
     }
 };
 
+bulletObj.prototype.hitTank = function() {
+    var temp = (panzer.y+loopCount - SCREEN_HEIGHT * 1 / 20);
+    if (dist(panzer.x, panzer.y, this.position.x, this.position.y) > 2) {
+        fill(122, 120, 113);
+        rect(this.position.x - (this.w*2) / 2, this.position.y, (this.w*2), (2*this.l));
+        ellipse(this.position.x, this.position.y, (2*this.w), (2*this.w));
+        this.speed.set(panzer.x - this.position.x, 3);
+        this.speed.normalize();
+        // this.speed.mult(4);
+        this.position.add(this.speed);
+    }
+}
+
 bulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
     for (var i = 0; i < enemyList.length; i++) {
         var within_x = this.position.x > round(enemyList[i].position.x) && this.position.x < round(enemyList[i].position.x) + TILE_WIDTH;
@@ -494,7 +507,6 @@ shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
 bulletObj.prototype.TankCollsionCheck = function() {
     var within_x = round(this.position.x) > panzer.x && round(this.position.x) < panzer.x + TILE_WIDTH;
     var within_y = round(this.position.y) > (panzer.y)&& round(this.position.y) < panzer.y + TILE_HEIGHT;
-    var t = dist(round(this.position.x), round(this.position.y), panzer.x+ TILE_WIDTH, panzer.y) < 30;
 
     if (within_x && within_y && (this.hit !== 1)) {
         panzer.health-= this.damage;
@@ -1026,8 +1038,8 @@ enemy1Obj.prototype.wander = function() {
         this.wanderAngle += random(-90, 90);
     }
 
-    if (this.position.x > 840) {this.position.x = 10;}
-    else if (this.position.x < 5) {this.position.x = 800;}
+    if (this.position.x > 800) {this.position.x = 5;}
+    else if (this.position.x < 5) {this.position.x = 790;}
     if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
     else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
@@ -1058,6 +1070,7 @@ enemy2Obj.prototype.draw = function() {
 
         for (var i = 0; i < this.bullets.length; i++) {
             this.bullets[i].draw(1);
+            // this.bullets[i].hitTank();
             this.bullets[i].TankCollsionCheck();
         }
     }
@@ -1077,12 +1090,8 @@ enemy2Obj.prototype.wander = function() {
         this.wanderAngle += random(-90, 90);
     }
 
-    if (this.position.x > 840) {
-        this.position.x = 10;
-    }
-    else if (this.position.x < 5) {
-        this.position.x = 800;
-    }
+    if (this.position.x > 800) {this.position.x = 10;}
+    else if (this.position.x < 5) {this.position.x = 790;}
     if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
     else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
@@ -1111,16 +1120,18 @@ enemy3Obj.prototype.draw = function() {
 
         for (var i = 0; i < this.bullets.length; i++) {
             this.bullets[i].draw(1);
+            // this.bullets[i].hitTank();
             this.bullets[i].TankCollsionCheck();
         }
     }
 }
 
 enemy3Obj.prototype.wander = function() {
-    if (dist(panzer.x, panzer.y, this.position.x, this.position.y) > 5) {
-        this.step.set(panzer.x - this.position.x, panzer.y - this.position.y);
+    var temp = (panzer.y+loopCount - SCREEN_HEIGHT * 1 / 20);
+    if (dist(panzer.x, temp, this.position.x, this.position.y) > 5) {
+        this.step.set((panzer.x - this.position.x)+60, (temp - this.position.y)-60);
         this.step.normalize();
-        this.step.mult(4);
+        // this.step.mult(2);
         this.position.add(this.step);
     }
 };
@@ -1149,31 +1160,20 @@ enemy4Obj.prototype.draw = function() {
 
         for (var i = 0; i < this.bullets.length; i++) {
             this.bullets[i].draw(1);
+            // this.bullets[i].hitTank();
             this.bullets[i].TankCollsionCheck();
         }
     }
 }
 
 enemy4Obj.prototype.wander = function() {
-    this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
-    var oldY = this.position.y;
-    this.position.add(this.step);
-    // this.wanderAngle += random(-15, 15);
-
-    this.wanderDistance--;
-    if (this.wanderDistance < 0) {
-        this.wanderDistance = random(70, 700);
-        this.wanderAngle += random(-90, 90);
+    var temp = (panzer.y+loopCount - SCREEN_HEIGHT * 1 / 20);
+    if (dist(panzer.x, temp, this.position.x, this.position.y) > 5) {
+        this.step.set((panzer.x - this.position.x), temp - this.position.y);
+        this.step.normalize();
+        // this.step.mult(2);
+        this.position.add(this.step);
     }
-
-    if (this.position.x > 840) {
-        this.position.x = 10;
-    }
-    else if (this.position.x < 5) {
-        this.position.x = 800;
-    }
-    if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
-    else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
 
 var bossEnemy = function(x, y) {
@@ -1191,6 +1191,24 @@ bossEnemy.prototype.draw = function() {
     // TODO:
     // image();
 };
+
+bossEnemy.prototype.wander = function() {
+    this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
+    var oldY = this.position.y;
+    this.position.add(this.step);
+    // this.wanderAngle += random(-15, 15);
+
+    this.wanderDistance--;
+    if (this.wanderDistance < 0) {
+        this.wanderDistance = random(70, 100);
+        this.wanderAngle += random(-90, 90);
+    }
+
+    if (this.position.x > 800) {this.position.x = 10;}
+    else if (this.position.x < 5) {this.position.x = 790;}
+    if (this.position.y > (oldY + 150)) {this.position.y = (oldY - 10);}
+    else if (this.position.y < (oldY - 150)) {this.position.y = (oldY + 10);}
+}
 
 var prevTime = 0;
 var animation_speed = 15;
@@ -1430,7 +1448,7 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
             break;
 
         case MapDifficulty_e.HARD:
-            var enemySymbols = ['a', 'a', 'a', 'b', 'b', 'c', 'c', 'd'];
+                var enemySymbols = ['a', 'a', 'a', 'b', 'b', 'c', 'c', 'd'];
             var probability = [0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4];
 
             for (var i = 0; i < TILE_MAP_LENGTH - 8; i++) {
