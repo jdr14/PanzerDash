@@ -1067,8 +1067,8 @@ enemy1Obj.prototype.wander = function() {
         this.wanderAngle += random(-90, 90);
     }
 
-    if (this.position.x > 800) {this.position.x = 5;}
-    else if (this.position.x < 5) {this.position.x = 790;}
+    if (this.position.x > 802) {this.position.x = -2;}
+    else if (this.position.x < -2) {this.position.x = 802;}
     if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
     else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
@@ -1119,8 +1119,8 @@ enemy2Obj.prototype.wander = function() {
         this.wanderAngle += random(-90, 90);
     }
 
-    if (this.position.x > 800) {this.position.x = 10;}
-    else if (this.position.x < 5) {this.position.x = 790;}
+    if (this.position.x > 810) {this.position.x = -5;}
+    else if (this.position.x < -5) {this.position.x = 810;}
     if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
     else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
@@ -1156,13 +1156,22 @@ enemy3Obj.prototype.draw = function() {
 }
 
 enemy3Obj.prototype.wander = function() {
-    var temp = (panzer.y+loopCount - SCREEN_HEIGHT * 1 / 20);
-    if (dist(panzer.x, temp, this.position.x, this.position.y) > 5) {
-        this.step.set((panzer.x - this.position.x)+60, (temp - this.position.y)-60);
-        this.step.normalize();
-        // this.step.mult(2);
-        this.position.add(this.step);
+    this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
+    var oldY = this.position.y;
+    this.position.add(this.step);
+    // this.wanderAngle += random(-15, 15);
+
+    // distance is redefined when it reaches 0
+    this.wanderDistance--;
+    if (this.wanderDistance < 0) {
+        this.wanderDistance = random(70, 700);
+        this.wanderAngle += random(-90, 90);
     }
+
+    if (this.position.x > 810) {this.position.x = -5;}
+    else if (this.position.x < -5) {this.position.x = 810;}
+    if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
+    else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
 
 var enemy4Obj = function(x, y, s) {
@@ -2309,7 +2318,7 @@ var draw = function() {
          * level)
          */
         case GameState_e.ANIMATED_LOAD_TRANSITION: 
-            changeGameState(GameState_e.LEVEL_TWO)    // change back to one
+            changeGameState(GameState_e.LEVEL_ONE)    // change back to one
             break;
 
         /*
