@@ -428,9 +428,10 @@ bulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
 
 bulletObj.prototype.TankCollsionCheck = function() {
     var within_x = round(this.position.x) > panzer.x && round(this.position.x) < panzer.x + TILE_WIDTH;
-    var within_y = round(this.position.y) > panzer.y - TILE_HEIGHT && round(this.position.y) < panzer.y + TILE_HEIGHT;
+    var within_y = round(this.position.y) > (panzer.y)&& round(this.position.y) < panzer.y + TILE_HEIGHT;
+    var t = dist(round(this.position.x), round(this.position.y), panzer.x+ TILE_WIDTH, panzer.y) < 30;
 
-    if (within_x && within_y) {
+    if (within_x && within_y && (this.hit !== 1)) {
         panzer.health-= this.damage;
         this.hit = 1;
         within_x = false;
@@ -927,7 +928,7 @@ enemy2Obj.prototype.draw = function() {
         image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3 / 4, TILE_WIDTH, TILE_HEIGHT);
 
         // add bullet to bullet list
-        if (loopCount % 100 === 0) {
+        if (loopCount % 200 === 0) {
             this.bullets.push(new bulletObj(this.position.x + TILE_WIDTH * 2 / 3 , this.position.y + TILE_HEIGHT, 6));
         }
 
@@ -958,8 +959,8 @@ enemy2Obj.prototype.wander = function() {
     else if (this.position.x < 5) {
         this.position.x = 800;
     }
-    // if (this.position.y > 520) {this.position.y = -20;}
-    // else if (this.position.y < -20) {this.position.y = 520;}
+    if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
+    else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
 
 var enemy3Obj = function(x, y, s) {
@@ -980,7 +981,7 @@ enemy3Obj.prototype.draw = function() {
         image(Assets_t.ENEMY3_TURRET, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
 
         // add bullet to bullet list
-        if (loopCount % 100 === 0) {
+        if (loopCount % 200 === 0) {
             this.bullets.push(new bulletObj(this.position.x + TILE_WIDTH * 2 / 3 , this.position.y + TILE_HEIGHT, 6));
         }
 
@@ -992,24 +993,12 @@ enemy3Obj.prototype.draw = function() {
 }
 
 enemy3Obj.prototype.wander = function() {
-    this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
-    this.position.add(this.step);
-    // this.wanderAngle += random(-15, 15);
-
-    this.wanderDistance--;
-    if (this.wanderDistance < 0) {
-        this.wanderDistance = random(70, 700);
-        this.wanderAngle += random(-90, 90);
+    if (dist(panzer.x, panzer.y, this.position.x, this.position.y) > 5) {
+        this.step.set(panzer.x - this.position.x, panzer.y - this.position.y);
+        this.step.normalize();
+        this.step.mult(4);
+        this.position.add(this.step);
     }
-
-    if (this.position.x > 840) {
-        this.position.x = 10;
-    }
-    else if (this.position.x < 5) {
-        this.position.x = 800;
-    }
-    // if (this.position.y > 520) {this.position.y = -20;}
-    // else if (this.position.y < -20) {this.position.y = 520;}
 };
 
 var enemy4Obj = function(x, y, s) {
@@ -1030,7 +1019,7 @@ enemy4Obj.prototype.draw = function() {
         image(Assets_t.ENEMY4_TURRET, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
         
         // add bullet to bullet list
-        if (loopCount % 20 === 0) {
+        if (loopCount % 200 === 0) {
             this.bullets.push(new bulletObj(this.position.x + TILE_WIDTH * 2 / 3, this.position.y + TILE_HEIGHT, 6));
         }
 
@@ -1043,6 +1032,7 @@ enemy4Obj.prototype.draw = function() {
 
 enemy4Obj.prototype.wander = function() {
     this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
+    var oldY = this.position.y;
     this.position.add(this.step);
     // this.wanderAngle += random(-15, 15);
 
@@ -1058,8 +1048,8 @@ enemy4Obj.prototype.wander = function() {
     else if (this.position.x < 5) {
         this.position.x = 800;
     }
-    // if (this.position.y > 520) {this.position.y = -20;}
-    // else if (this.position.y < -20) {this.position.y = 520;}
+    if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
+    else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
 
 var bossEnemy = function(x, y) {
@@ -1985,7 +1975,7 @@ var draw = function() {
          * level)
          */
         case GameState_e.ANIMATED_LOAD_TRANSITION: 
-            changeGameState(GameState_e.LEVEL_ONE)
+            changeGameState(GameState_e.LEVEL_THREE)    // change back to one
             break;
 
         /*
@@ -2192,11 +2182,11 @@ var draw = function() {
             // 1st wave of enemies contained in the first tilemap defined in 
             // the game object
             if (loopIterations === 0) {  
-                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects);
+                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects5);
             }
             // 2nd wave of enemies (2nd map iteration) = 2nd tilemap
             else if (loopIterations === 1) {  
-                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects2);
+                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects6);
             }
 
             // Main functionality of the panzer tank
