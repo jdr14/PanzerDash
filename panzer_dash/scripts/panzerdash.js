@@ -799,6 +799,32 @@ var bossEnemy = function(x, y) {
     this.type = ObjectType_e.ENEMY;
 };
 
+
+var enemy3Obj = function(x, y) {
+    this.position = new PVector(x, y);
+    this.step = new PVector(0, 0);
+    this.pursueTarget = new PVector(0, 0);
+    this.defeated = false;
+    this.health = 500;
+    this.type = ObjectType_e.ENEMY;
+};
+
+enemy3Obj.prototype.draw = function() {
+    if (!this.defeated) {
+        image(Assets_t.ENEMY3_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.ENEMY3_TURRET, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
+    }
+};
+
+enemy3Obj.prototype.seek = function() {
+    if (dist(panzer.x, panzer.y, this.position.x, this.position.y) > 5) {
+        this.step.set(panzer.x - this.position.x, panzer.y - this.position.y);
+        this.step.normalize();
+        this.step.mult(4);
+        this.position.add(this.step);
+    }
+};
+
 bossEnemy.prototype.draw = function() {
     // TODO:
     // image();
