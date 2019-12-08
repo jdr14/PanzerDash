@@ -390,8 +390,10 @@ bulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
         if (within_x && within_y && !enemyList[i].defeated) {  // Check that object has not already been collected
             // Inflict collateral damage
             enemyList[i].health -= this.damage;
+            // case where an emeny is killed
             if (enemyList[i].health < 1) {
                 enemyList[i].defeated = true;
+                GAME_INST.score++;
             }
             this.hit = 1;
         }
@@ -719,6 +721,7 @@ enemy1Obj.prototype.draw = function() {
 
 enemy1Obj.prototype.wander = function() {
     this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
+    var oldY = this.position.y;
     this.position.add(this.step);
     // this.wanderAngle += random(-15, 15);
 
@@ -730,8 +733,8 @@ enemy1Obj.prototype.wander = function() {
 
     if (this.position.x > 840) {this.position.x = 10;}
     else if (this.position.x < 5) {this.position.x = 800;}
-    // if (this.position.y > 520) {this.position.y = -20;}
-    // else if (this.position.y < -20) {this.position.y = 520;}
+    if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
+    else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
 
 var enemy2Obj = function(x, y, s) {
@@ -768,9 +771,11 @@ enemy2Obj.prototype.draw = function() {
 
 enemy2Obj.prototype.wander = function() {
     this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
+    var oldY = this.position.y;
     this.position.add(this.step);
     // this.wanderAngle += random(-15, 15);
 
+    // distance is redefined when it reaches 0
     this.wanderDistance--;
     if (this.wanderDistance < 0) {
         this.wanderDistance = random(70, 700);
@@ -779,8 +784,8 @@ enemy2Obj.prototype.wander = function() {
 
     if (this.position.x > 840) {this.position.x = 10;}
     else if (this.position.x < 5) {this.position.x = 800;}
-    // if (this.position.y > 520) {this.position.y = -20;}
-    // else if (this.position.y < -20) {this.position.y = 520;}
+    if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
+    else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
 
 var bossEnemy = function(x, y) {
@@ -1625,7 +1630,7 @@ var draw = function() {
          * -------------------
          */
         case GameState_e.LEVEL_ONE:
-            //changeGameState(GameState_e.LEVEL_TWO);
+            // changeGameState(GameState_e.ANIMATED_LOSE_TRANSITION);
             pushMatrix();
             translate(0, loopCount);
             GAME_INST.drawLevelOne(loopCount, loopIterations);
@@ -1651,6 +1656,7 @@ var draw = function() {
             fill(230, 30, 30);
             textSize(14);
             text("HEALTH: " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("SCORE: " + GAME_INST.score*10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
             noStroke();
             
             // 1st wave of enemies contained in the first tilemap defined in 
@@ -1718,6 +1724,7 @@ var draw = function() {
             fill(230, 30, 30);
             textSize(14);
             text("HEALTH: " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("SCORE: " + GAME_INST.score*10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
             noStroke();
             
             // 1st wave of enemies contained in the first tilemap defined in 
@@ -1785,6 +1792,7 @@ var draw = function() {
             fill(230, 30, 30);
             textSize(14);
             text("HEALTH: " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("SCORE: " + GAME_INST.score*10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
             noStroke();
             
             // 1st wave of enemies contained in the first tilemap defined in 
@@ -1905,13 +1913,8 @@ var draw = function() {
 
             if (MouseState.PRESSED) {
                 MouseState.PRESSED = 0;
-                changeGameState(GameState_e.ANIMATED_WIN_TRANSITION)
+                // changeGameState(GameState_e.ANIMATED_WIN_TRANSITION)
             }
-            //background(0, 0, 0);
-            //fill(255, 255, 255);
-            //textSize(fontSize);
-            //text("YOU LOSE!!! :(", 200, 280);
-            //println("TEMPORARY: LOSE_SCREEN");
             break;
 
         /*
