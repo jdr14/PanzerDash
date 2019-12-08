@@ -403,7 +403,7 @@ var bulletObj = function(x, y, s) {
     this.w = 4;  // width
     this.l = 7;  // length
     this.speed = new PVector(0, s);
-    this.damage = 1;
+    this.damage = 2;
     this.hit = 0;
 };
 
@@ -1092,7 +1092,7 @@ var enemy1Obj = function(x, y) {
     this.wanderDistance = random(0, 100);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 16;
+    this.health = 20;
     this.objectType = ObjectType_e.ENEMY;
 };
 
@@ -1129,7 +1129,7 @@ var enemy2Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 26;
+    this.health = 30;
     this.bullets = [];
     this.objectType = ObjectType_e.ENEMY;
 };
@@ -1180,7 +1180,7 @@ var enemy3Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 30;
+    this.health = 50;
     this.bullets = [];
     this.objectType = ObjectType_e.ENEMY;
 };
@@ -1229,7 +1229,7 @@ var enemy4Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 40;
+    this.health = 80;
     this.bullets = [];
     this.objectType = ObjectType_e.ENEMY;
 };
@@ -1274,7 +1274,6 @@ var bossEnemy = function(x, y) {
 };
 
 bossEnemy.prototype.draw = function() {
-    // TODO:
     // image();
 };
 
@@ -1409,16 +1408,7 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
             var probability = [0, 0, 0, 0, 0, 1, 1, 2]; 
 
             // Most amount of health pickups allowed
-            var maxHealthPickups = 5;
-            var numHealthPickups = round(random(1, maxHealthPickups)); 
-            var healthPickUpCount = 0;
-            var healthLines = [
-                "      h     ",
-                "         h  ",
-                "  h         ",
-                "     h      ",
-            ];
-            var count = 0;
+            var healthLine  = "     h      ";
 
             for (var i = 0; i < TILE_MAP_LENGTH - 8; i++) {
                 var numEnemiesInLine = probability[round(random(0, probability.length - 1))];
@@ -1448,9 +1438,8 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 var line = "";  // Create a line to be added to the pagemap later
                 
                 // Assemble the line to add to the tilemap
-                if (i % 10 === 0 && i != 0 && count < healthLines.length && iterNum === 1) {
-                    line = healthLines[count];
-                    count++;
+                if (i === 20 && iterNum === 1) {
+                    line = healthLine;
                 }
                 else {
                     for (var j = 0; j < lineLength; j++) {
@@ -1505,6 +1494,12 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
             var maxHealthPickups = 3;
             var numHealthPickups = round(random(1, maxHealthPickups)); 
             var healthPickUpCount = 0;
+            var healthLines = [
+                "  h         ",
+                "        h   ",
+                "       h    ",
+            ];
+            var count = 0;
 
             for (var i = 0; i < TILE_MAP_LENGTH - 8; i++) {
                 var numEnemiesInLine = probability[round(random(0, probability.length - 1))];
@@ -1549,31 +1544,31 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 var line = "";  // Create a line to be added to the pagemap later
 
                 // Assemble the line to add to the tilemap
-                for (var j = 0; j < lineLength; j++) {
-                    
-                    if (j !== enemyLocation[0] && j !== enemyLocation[1]) {
-                        if (rollOfTheDice() <= 4 && healthPickUpCount !== numHealthPickups) {
-                            line += 'h';
-                            healthPickUpCount++;  // Use incremented count to keep track of the number of health packages placed
-                        }
-                        else {
+                if (i % 15 === 0 && i != 0 && count < healthLines.length && iterNum === 1) {
+                    line = healthLines[count];
+                    count++;
+                }
+                else {
+                    for (var j = 0; j < lineLength; j++) {
+                        
+                        if (j !== enemyLocation[0] && j !== enemyLocation[1]) {
                             line += " ";
                         }
-                    }
-                    if (j === enemyLocation[0]) {
-                        // Pick a random enemy in the potential enemy
-                        var t = round(random(0, enemySymbols.length - 1))
-                        line += enemySymbols[t];
-                    }
-                    if (j === enemyLocation[1]) {
-                        // Pick a random enemy in the potential enemy
-                        var t = round(random(0, enemySymbols.length - 1))
-                        line += enemySymbols[t];
-                    }
-                    if (j === enemyLocation[2]) {
-                        // Pick a random enemy in the potential enemy
-                        var t = round(random(0, enemySymbols.length - 1))
-                        line += enemySymbols[t];
+                        if (j === enemyLocation[0]) {
+                            // Pick a random enemy in the potential enemy
+                            var t = round(random(0, enemySymbols.length - 1))
+                            line += enemySymbols[t];
+                        }
+                        if (j === enemyLocation[1]) {
+                            // Pick a random enemy in the potential enemy
+                            var t = round(random(0, enemySymbols.length - 1))
+                            line += enemySymbols[t];
+                        }
+                        if (j === enemyLocation[2]) {
+                            // Pick a random enemy in the potential enemy
+                            var t = round(random(0, enemySymbols.length - 1))
+                            line += enemySymbols[t];
+                        }
                     }
                 }
 
@@ -1608,8 +1603,16 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
             var probability = [0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4];
             
             // Most amount of health pickups allowed
-            var numHealthPickups = 1;
+            var maxHealthPickups = 4;
+            var numHealthPickups = round(random(1, maxHealthPickups)); 
             var healthPickUpCount = 0;
+            var healthLines = [
+                "      h     ",
+                "         h  ",
+                "  h         ",
+                "     h      ",
+            ];
+            var count = 0;
 
             for (var i = 0; i < TILE_MAP_LENGTH - 8; i++) {
                 var numEnemiesInLine = probability[round(random(0, probability.length - 1))];
@@ -1674,36 +1677,36 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 var line = "";  // Create a line to be added to the pagemap later
 
                 // Assemble the line to add to the tilemap
-                for (var j = 0; j < lineLength; j++) {
-                    
-                    if (j !== enemyLocation[0] && j !== enemyLocation[1]) {
-                        if (round(random(1, 50)) === 15 && healthPickUpCount !== numHealthPickups) {
-                            line += 'h';
-                            healthPickUpCount++;  // Use incremented count to keep track of the number of health packages placed
-                        }
-                        else {
+                if (i % 10 === 0 && i != 0 && count < healthLines.length && iterNum === 1) {
+                    line = healthLines[count];
+                    count++;
+                }
+                else {
+                    for (var j = 0; j < lineLength; j++) {
+                        
+                        if (j !== enemyLocation[0] && j !== enemyLocation[1]) {
                             line += " ";
                         }
-                    }
-                    if (j === enemyLocation[0]) {
-                        // Pick a random enemy in the potential enemy
-                        var t = round(random(0, enemySymbols.length - 1))
-                        line += enemySymbols[t];
-                    }
-                    if (j === enemyLocation[1]) {
-                        // Pick a random enemy in the potential enemy
-                        var t = round(random(0, enemySymbols.length - 1))
-                        line += enemySymbols[t];
-                    }
-                    if (j === enemyLocation[2]) {
-                        // Pick a random enemy in the potential enemy
-                        var t = round(random(0, enemySymbols.length - 1))
-                        line += enemySymbols[t];
-                    }
-                    if (j === enemyLocation[3]) {
-                        // Pick a random enemy in the potential enemy
-                        var t = round(random(0, enemySymbols.length - 1))
-                        line += enemySymbols[t];
+                        if (j === enemyLocation[0]) {
+                            // Pick a random enemy in the potential enemy
+                            var t = round(random(0, enemySymbols.length - 1))
+                            line += enemySymbols[t];
+                        }
+                        if (j === enemyLocation[1]) {
+                            // Pick a random enemy in the potential enemy
+                            var t = round(random(0, enemySymbols.length - 1))
+                            line += enemySymbols[t];
+                        }
+                        if (j === enemyLocation[2]) {
+                            // Pick a random enemy in the potential enemy
+                            var t = round(random(0, enemySymbols.length - 1))
+                            line += enemySymbols[t];
+                        }
+                        if (j === enemyLocation[3]) {
+                            // Pick a random enemy in the potential enemy
+                            var t = round(random(0, enemySymbols.length - 1))
+                            line += enemySymbols[t];
+                        }
                     }
                 }
 
@@ -1946,21 +1949,6 @@ gameObj.prototype.initialize = function() {
         }
     }
 };
-
-/*
-var displayScore = function() {
-    fill(255, 50, 50);
-    textSize(18);
-    text("Score = " + (GAME_INST.score * 10), 170, 320);
-};
-
-var displayCredits = function() {
-    fill(225, 225, 225);
-    textSize(14);
-    text("Artwork by Alex Shammas", 20, 360);
-    text("Code by Joey Rodgers", 20, 380);
-}
-*/
 
 var createTank = function(x, y, s, tankType) {
     if (tankType === TankOptions_e.BASIC) {
@@ -2467,15 +2455,15 @@ var draw = function() {
             if (upgradeCollected === ObjectType_e.BASIC_GUN && !tankUpgraded) {  
                 var autoFireEnabled = panzer.autoFireEnabled;
                 var currentHealth = panzer.health;
-                var boostAvailable = panzer.boostAvailable;
-                var rechargeTime = panzer.rechargeTime;
-                var rechargeNeeded = panzer.reachardNeeded;
+                //var boostAvailable = panzer.boostAvailable;
+                //var rechargeTime = panzer.rechargeTime;
+                //var rechargeNeeded = panzer.reachardNeeded;
                 panzer = createTank(panzer.x, panzer.y, tankSpeed, TankOptions_e.UPGRADED);  // Create the upgraded tank
                 panzer.autoFireEnabled = autoFireEnabled;  // Remember previous tank state
                 panzer.health = currentHealth;  // Update the upgraded tanks health 
-                panzer.boostAvailable = boostAvailable;
-                panzer.rechargeTime = rechargeTime;
-                panzer.rechargeNeeded = rechargeNeeded;
+                //panzer.boostAvailable = boostAvailable;
+                //panzer.rechargeTime = rechargeTime;
+                //panzer.rechargeNeeded = rechargeNeeded;
                 tankUpgraded = true;  // Control variable to ensure only 1x execution of this logical block
             }
 
