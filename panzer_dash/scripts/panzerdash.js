@@ -253,10 +253,13 @@ var bulletObj = function(x, y, s) {
     this.hit = 0;
 };
 
-bulletObj.prototype.draw = function() {
+bulletObj.prototype.draw = function(c) {
     if(this.hit == 0) {
         noStroke();
-        fill(31, 31, 24);
+        if (c == 1)
+            fill(255, 0, 0);
+        else
+            fill(31, 31, 24);
         rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
         ellipse(this.position.x, this.position.y, this.w, this.w);
         this.position.add(this.speed);
@@ -270,7 +273,7 @@ bulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
 
         if (within_x && within_y && !enemyList[i].defeated) {  // Check that object has not already been collected
             // Inflict collateral damage
-            enemyList[i].health--;
+            enemyList[i].health -= this.damage;
             if (enemyList[i].health < 1) {
                 enemyList[i].defeated = true;
             }
@@ -278,6 +281,18 @@ bulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
         }
     }
 };
+
+bulletObj.prototype.TankCollsionCheck = function() {
+    var within_x = round(this.position.x) > panzer.x && round(this.position.x) < panzer.x + TILE_WIDTH;
+    var within_y = round(this.position.y) > panzer.y - TILE_HEIGHT && round(this.position.y) < panzer.y + TILE_HEIGHT;
+
+    if (within_x && within_y) {
+        panzer.health-= this.damage;
+        this.hit = 1;
+        within_x = false;
+        return;
+    }
+}
 
 var laserObj = function(x, y) {
     this.x = x;
@@ -323,7 +338,7 @@ var tankObj = function(x, y, s) {
     this.bulletSpeed = -6;
     this.fireRate = 5;
     this.autoFireEnabled = false;
-    this.health = 1000;
+    this.health = 10000;
     this.type = ObjectType_e.TANK;
 };
 
@@ -365,7 +380,7 @@ tankObj.prototype.draw = function(frameCount) {
 
     image(Assets_t.PANZER, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     for (var i = 0; i < this.bullets.length; i++) {
-        this.bullets[i].draw();
+        this.bullets[i].draw(0);
         if (loopIterations === 0) {  // 1st wave of enemies (1st map iteration)
             this.bullets[i].EnemyCollisionCheck(GAME_INST.enemyObjects);
         }
@@ -523,7 +538,7 @@ tankUpgradedObj.prototype.draw = function(frameCount) {
     // Draw the regular machine gun bullets
     for (var i = 0; i < this.bullets.length; i++) {
         fill(186, 140, 0);
-        this.bullets[i].draw();
+        this.bullets[i].draw(0);
         if (loopIterations === 0) {  // 1st wave of enemies (1st map iteration)
             this.bullets[i].EnemyCollisionCheck(GAME_INST.enemyObjects);
         }
@@ -575,7 +590,7 @@ var enemy1Obj = function(x, y) {
     this.wanderDistance = random(0, 100);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 20;
+    this.health = 500;
     this.type = ObjectType_e.ENEMY;
 };
 
@@ -611,7 +626,8 @@ var enemy2Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 40;
+    this.health = 1000;
+    this.bullets = [];
     this.type = ObjectType_e.ENEMY;
 };
 
@@ -620,6 +636,16 @@ enemy2Obj.prototype.draw = function() {
         image(Assets_t.ENEMY2_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
         image(Assets_t.ENEMY_TURRET, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
         image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3/4, TILE_WIDTH, TILE_HEIGHT);
+
+        // add bullet to bullet list
+        if (loopCount % 100 === 0) {
+            this.bullets.push(new bulletObj(this.position.x + TILE_WIDTH*2/3 , this.position.y + TILE_HEIGHT, 6));
+        }
+
+        for (var i = 0; i < this.bullets.length; i++) {
+            this.bullets[i].draw(1);
+            this.bullets[i].TankCollsionCheck();
+        }
     }
     
 };
