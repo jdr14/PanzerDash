@@ -257,11 +257,17 @@ bulletObj.prototype.draw = function(c) {
     if(this.hit == 0) {
         noStroke();
         if (c == 1)
-            fill(255, 0, 0);
+        {
+            fill(122, 120, 113);
+            rect(this.position.x - (this.w*2) / 2, this.position.y, (this.w*2), (2*this.l));
+            ellipse(this.position.x, this.position.y, (2*this.w), (2*this.w));
+        }
         else
+        {
             fill(31, 31, 24);
-        rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
-        ellipse(this.position.x, this.position.y, this.w, this.w);
+            rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
+            ellipse(this.position.x, this.position.y, this.w, this.w);
+        }
         this.position.add(this.speed);
     }
 };
