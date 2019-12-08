@@ -436,8 +436,10 @@ bulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
         if (within_x && within_y && !enemyList[i].defeated) {  // Check that object has not already been collected
             // Inflict collateral damage
             enemyList[i].health -= this.damage;
+            // case where an emeny is killed
             if (enemyList[i].health < 1) {
                 enemyList[i].defeated = true;
+                GAME_INST.score++;
             }
             this.hit = 1;
         }
@@ -488,10 +490,11 @@ shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
 
 bulletObj.prototype.TankCollsionCheck = function() {
     var within_x = round(this.position.x) > panzer.x && round(this.position.x) < panzer.x + TILE_WIDTH;
-    var within_y = round(this.position.y) > panzer.y - TILE_HEIGHT && round(this.position.y) < panzer.y + TILE_HEIGHT;
+    var within_y = round(this.position.y) > (panzer.y)&& round(this.position.y) < panzer.y + TILE_HEIGHT;
+    var t = dist(round(this.position.x), round(this.position.y), panzer.x+ TILE_WIDTH, panzer.y) < 30;
 
-    if (within_x && within_y) {
-        panzer.health -= this.damage;
+    if (within_x && within_y && (this.hit !== 1)) {
+        panzer.health-= this.damage;
         this.hit = 1;
         within_x = false;
         return;
@@ -1006,6 +1009,7 @@ enemy1Obj.prototype.draw = function() {
 
 enemy1Obj.prototype.wander = function() {
     this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
+    var oldY = this.position.y;
     this.position.add(this.step);
     // this.wanderAngle += random(-15, 15);
 
@@ -1015,14 +1019,10 @@ enemy1Obj.prototype.wander = function() {
         this.wanderAngle += random(-90, 90);
     }
 
-    if (this.position.x > 840) {
-        this.position.x = 10;
-    }
-    else if (this.position.x < 5) {
-        this.position.x = 800;
-    }
-    // if (this.position.y > 520) {this.position.y = -20;}
-    // else if (this.position.y < -20) {this.position.y = 520;}
+    if (this.position.x > 840) {this.position.x = 10;}
+    else if (this.position.x < 5) {this.position.x = 800;}
+    if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
+    else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
 
 var enemy2Obj = function(x, y, s) {
@@ -1059,9 +1059,11 @@ enemy2Obj.prototype.draw = function() {
 
 enemy2Obj.prototype.wander = function() {
     this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
+    var oldY = this.position.y;
     this.position.add(this.step);
     // this.wanderAngle += random(-15, 15);
 
+    // distance is redefined when it reaches 0
     this.wanderDistance--;
     if (this.wanderDistance < 0) {
         this.wanderDistance = random(70, 700);
@@ -1074,8 +1076,8 @@ enemy2Obj.prototype.wander = function() {
     else if (this.position.x < 5) {
         this.position.x = 800;
     }
-    // if (this.position.y > 520) {this.position.y = -20;}
-    // else if (this.position.y < -20) {this.position.y = 520;}
+    if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
+    else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
 
 var enemy3Obj = function(x, y, s) {
@@ -1108,24 +1110,12 @@ enemy3Obj.prototype.draw = function() {
 }
 
 enemy3Obj.prototype.wander = function() {
-    this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
-    this.position.add(this.step);
-    // this.wanderAngle += random(-15, 15);
-
-    this.wanderDistance--;
-    if (this.wanderDistance < 0) {
-        this.wanderDistance = random(70, 700);
-        this.wanderAngle += random(-90, 90);
+    if (dist(panzer.x, panzer.y, this.position.x, this.position.y) > 5) {
+        this.step.set(panzer.x - this.position.x, panzer.y - this.position.y);
+        this.step.normalize();
+        this.step.mult(4);
+        this.position.add(this.step);
     }
-
-    if (this.position.x > 840) {
-        this.position.x = 10;
-    }
-    else if (this.position.x < 5) {
-        this.position.x = 800;
-    }
-    // if (this.position.y > 520) {this.position.y = -20;}
-    // else if (this.position.y < -20) {this.position.y = 520;}
 };
 
 var enemy4Obj = function(x, y, s) {
@@ -1146,7 +1136,7 @@ enemy4Obj.prototype.draw = function() {
         image(Assets_t.ENEMY4_TURRET, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
         
         // add bullet to bullet list
-        if (loopCount % 20 === 0) {
+        if (loopCount % 200 === 0) {
             this.bullets.push(new bulletObj(this.position.x + TILE_WIDTH * 2 / 3, this.position.y + TILE_HEIGHT, 6));
         }
 
@@ -1159,6 +1149,7 @@ enemy4Obj.prototype.draw = function() {
 
 enemy4Obj.prototype.wander = function() {
     this.step.set(cos(this.wanderAngle), sin(this.wanderAngle));
+    var oldY = this.position.y;
     this.position.add(this.step);
     // this.wanderAngle += random(-15, 15);
 
@@ -1174,8 +1165,8 @@ enemy4Obj.prototype.wander = function() {
     else if (this.position.x < 5) {
         this.position.x = 800;
     }
-    // if (this.position.y > 520) {this.position.y = -20;}
-    // else if (this.position.y < -20) {this.position.y = 520;}
+    if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
+    else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
 
 var bossEnemy = function(x, y) {
@@ -2117,7 +2108,7 @@ var draw = function() {
          * level)
          */
         case GameState_e.ANIMATED_LOAD_TRANSITION: 
-            changeGameState(GameState_e.LEVEL_ONE)
+            changeGameState(GameState_e.LEVEL_THREE)    // change back to one
             break;
 
         /*
@@ -2126,7 +2117,7 @@ var draw = function() {
          * -------------------
          */
         case GameState_e.LEVEL_ONE:
-            changeGameState(GameState_e.LEVEL_THREE);
+            // changeGameState(GameState_e.ANIMATED_LOSE_TRANSITION);
             pushMatrix();
             translate(0, loopCount);
             GAME_INST.drawLevelOne(loopCount, loopIterations);
@@ -2152,6 +2143,7 @@ var draw = function() {
             fill(230, 30, 30);
             textSize(14);
             text("HEALTH: " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("SCORE: " + GAME_INST.score*10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
             noStroke();
             
             // 1st wave of enemies contained in the first tilemap defined in 
@@ -2234,6 +2226,7 @@ var draw = function() {
             fill(230, 30, 30);
             textSize(14);
             text("HEALTH: " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("SCORE: " + GAME_INST.score*10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
             noStroke();
             
             // 1st wave of enemies contained in the first tilemap defined in 
@@ -2316,6 +2309,7 @@ var draw = function() {
             fill(230, 30, 30);
             textSize(14);
             text("HEALTH: " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            text("SCORE: " + GAME_INST.score*10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
             noStroke();
             
             // 1st wave of enemies contained in the first tilemap defined in 
@@ -2453,11 +2447,6 @@ var draw = function() {
                 MouseState.PRESSED = 0;
                 changeGameState(GameState_e.CREDITS)
             }
-            //background(0, 0, 0);
-            //fill(255, 255, 255);
-            //textSize(fontSize);
-            //text("YOU LOSE!!! :(", 200, 280);
-            //println("TEMPORARY: LOSE_SCREEN");
             break;
 
         /*
