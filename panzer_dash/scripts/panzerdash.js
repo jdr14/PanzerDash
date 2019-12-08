@@ -2521,8 +2521,13 @@ var draw = function() {
                 loopIterations++;
             }
 
-            if (panzer.y < loopCount) {
-                panzer.y = loopCount;
+            var tem = loopCount - 400
+            if (panzer.y > (abs(tem)+121)) {
+                panzer.y = abs(tem)+120
+            }
+
+            if (panzer.y < (abs(tem)-401)) {
+                panzer.y = abs(tem)-400
             }
             
             // Advance to level 3 once level 2 is complete
@@ -2635,6 +2640,15 @@ var draw = function() {
                 loopCount = -3400;
                 panzer.y -= loopCount;
                 loopIterations++;
+            }
+
+            var tem = loopCount - 400
+            if (panzer.y > (abs(tem)+121)) {
+                panzer.y = abs(tem)+120
+            }
+
+            if (panzer.y < (abs(tem)-401)) {
+                panzer.y = abs(tem)-400
             }
             
             // Advance to winning transition once level 3 is complete
