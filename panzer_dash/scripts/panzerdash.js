@@ -373,7 +373,7 @@ var shotBulletObj = function(x, y, s) {
     this.speed1 = new PVector(-this.spreadWidth, s);
     this.speed2 = new PVector(0, s);
     this.speed3 = new PVector(this.spreadWidth, s);
-    this.damage = 1;
+    this.damage = 2;
     this.hit1 = 0;
     this.hit2 = 0;
     this.hit3 = 0;
@@ -405,7 +405,7 @@ var bulletObj = function(x, y, s) {
     this.w = 4;  // width
     this.l = 7;  // length
     this.speed = new PVector(0, s);
-    this.damage = 1;
+    this.damage = 2;
     this.hit = 0;
 };
 
@@ -433,7 +433,7 @@ bulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
         var within_x = this.position.x > round(enemyList[i].position.x) && this.position.x < round(enemyList[i].position.x) + TILE_WIDTH;
         var within_y = this.position.y > round(enemyList[i].position.y) - TILE_HEIGHT && this.position.y < round(enemyList[i].position.y) + TILE_HEIGHT;
 
-        if (within_x && within_y && !enemyList[i].defeated) {  // Check that object has not already been collected
+        if (within_x && within_y && !enemyList[i].defeated && this.hit !== 1) {  // Check that object has not already been collected
             // Inflict collateral damage
             enemyList[i].health -= this.damage;
             // case where an emeny is killed
@@ -452,10 +452,11 @@ shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
         var within_y = this.pos1.y > round(enemyList[i].position.y) - TILE_HEIGHT && this.pos1.y < round(enemyList[i].position.y) + TILE_HEIGHT;
         
         // Check bullet 1 collision
-        if (within_x && within_y && !enemyList[i].defeated) {  
+        if (within_x && within_y && !enemyList[i].defeated && this.hit1 !== 1) {  
             enemyList[i].health -= this.damage;
             if (enemyList[i].health < 1) {
                 enemyList[i].defeated = true;
+                GAME_INST.score++;
             }
             this.hit1 = 1;
         }
@@ -465,10 +466,11 @@ shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
         within_y = this.pos2.y > round(enemyList[i].position.y) - TILE_HEIGHT && this.pos2.y < round(enemyList[i].position.y) + TILE_HEIGHT;
         
         // Check bullet 2 collision
-        if (within_x && within_y && !enemyList[i].defeated) {  
+        if (within_x && within_y && !enemyList[i].defeated && this.hit2 !== 1) {  
             enemyList[i].health -= this.damage;
             if (enemyList[i].health < 1) {
                 enemyList[i].defeated = true;
+                GAME_INST.score++;
             }
             this.hit2 = 1;
         }
@@ -478,10 +480,11 @@ shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
         within_y = this.pos3.y > round(enemyList[i].position.y) - TILE_HEIGHT && this.pos3.y < round(enemyList[i].position.y) + TILE_HEIGHT;
 
         // Check bullet 3 collision
-        if (within_x && within_y && !enemyList[i].defeated) { 
+        if (within_x && within_y && !enemyList[i].defeated && this.hit3 !== 1) { 
             enemyList[i].health -= this.damage;
             if (enemyList[i].health < 1) {
                 enemyList[i].defeated = true;
+                GAME_INST.score++;
             }
             this.hit3 = 1;
         }
@@ -545,7 +548,7 @@ var tankObj = function(x, y, s) {
     this.bulletSpeed = -6;
     this.fireRate = 8;
     this.autoFireEnabled = false;
-    this.health = 2000;
+    this.health = 100;
     this.objectType = ObjectType_e.TANK;
     this.miniGunEnabled = false;
     this.shotGunEnabled = false;
@@ -653,10 +656,14 @@ var checkCollisionWithEnemies = function(tank, enemyObjects) {
 
         if (within_x && within_y && !enemyObjects[i].defeated) {  // Check that object has not already been collected
             // Inflict collateral damage
-            tank.health--;
-            enemyObjects[i].health--;
-            return true;
+            tank.health -= 1;
+            enemyObjects[i].health -= 1;
 
+            if (enemyObjects[i].health < 0) {
+                enemyObjects[i].defeated = true
+                GAME_INST.score++;
+            }
+            return true;
         }
     }
 };
@@ -870,7 +877,7 @@ var tankUpgradedObj = function(x, y, s) {
     this.prevFrameCount = 0;
     this.fireRate = 8;
 
-    this.health = 10000;
+    this.health = 100;
     this.miniGunEnabled = false;
     this.shotGunEnabled = false;
 };
@@ -996,7 +1003,7 @@ var enemy1Obj = function(x, y) {
     this.wanderDistance = random(0, 100);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 300;
+    this.health = 14;
     this.objectType = ObjectType_e.ENEMY;
 };
 
@@ -1033,7 +1040,7 @@ var enemy2Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 400;
+    this.health = 22;
     this.bullets = [];
     this.objectType = ObjectType_e.ENEMY;
 };
@@ -1087,7 +1094,7 @@ var enemy3Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 600;
+    this.health = 30;
     this.bullets = [];
     this.objectType = ObjectType_e.ENEMY;
 };
@@ -1125,7 +1132,7 @@ var enemy4Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 800;
+    this.health = 40;
     this.bullets = [];
     this.objectType = ObjectType_e.ENEMY;
 };
