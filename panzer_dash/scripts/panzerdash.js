@@ -105,25 +105,23 @@ var TILE_MAP_LENGTH = 50;
         '../assets/enemies/boss_front.png',
         '../assets/main_character/tank_body.png',
         '../assets/main_character/tank_gun.png',
+        '../assets/sound_files/tank.wav',
     crisp='true';
 */
 
-/*
-var audio = new Audio("https://s3.amazonaws.com/audio-experiments/examples/elon_mono.wav");
+// playSound(getSound('../assets/sound_files/tank.wav'));
+// function playAudio() {
+//     audio.play();
+// }   
 
-function playAudio() {
-    audio.play();
-}   
+// function pauseAudio() {
+//     audio.pause();
+// }
 
-function pauseAudio() {
-    audio.pause();
-}
-
-function cancelAudio() {
-    audio.pause();
-    audio.currentTime = 0;
-}
-*/
+// function cancelAudio() {
+//     audio.pause();
+//     audio.currentTime = 0;
+// }
 
 // Enum for each game state in the PanzerDash FSM diagram
 var GameState_e = {
@@ -938,7 +936,7 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
     if (!DISABLE.DOWN) {
         this.autoFireEnabled = !this.autoFireEnabled;  // toggle the auto fire enabled option
         this.autoFireToggled = true;
-        this.laserOn = true;
+        //this.laserOn = true;
     }
     if (!DISABLE.UP || this.autoFireEnabled) {  // Fire the gun
         if (frameCount % this.fireRate === 0) {
@@ -955,10 +953,10 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
         // if (frameCount % 5 === 0) { 
         //     this.bullets.push(new bulletObj(this.x + TILE_WIDTH * 2 / 3, this.y, this.bulletSpeed));
         // }
-        // if (frameCount % 8 === 0) { // TODO: Add more diversity to tank ammunition
-        //     this.tankShells.push(new tankShellObj(this.x + TILE_WIDTH / 2, this.y, this.tankShellSpeed));
-        // }
-        this.laserOn = true;
+        if (frameCount % 8 === 0) { // TODO: Add more diversity to tank ammunition
+            this.tankShells.push(new tankShellObj(this.x + TILE_WIDTH / 2, this.y, this.tankShellSpeed));
+        }
+        //this.laserOn = true;
         this.laser = new laserObj(this.x + TILE_WIDTH / 2, this.y);
     }
     
@@ -1020,9 +1018,9 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
     
     // TODO: Implement normal tank shell rounds
     // Draw the tank shell rounds
-    // for (var i = 0; i < this.tankShells.length; i++) {
-    //     this.tankShells[i].draw(this.currGunAngle);
-    // }
+    for (var i = 0; i < this.tankShells.length; i++) {
+        this.tankShells[i].draw(this.currGunAngle);
+    }
 };
 
 var enemy1Obj = function(x, y) {
@@ -1373,7 +1371,7 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 var line = "";  // Create a line to be added to the pagemap later
                 
                 // Assemble the line to add to the tilemap
-                if (i % 10 === 0 && i != 0 && count < healthLines.length && iterNum === 2) {
+                if (i % 10 === 0 && i != 0 && count < healthLines.length && iterNum === 1) {
                     line = healthLines[count];
                     count++;
                 }
@@ -2398,7 +2396,12 @@ var draw = function() {
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                panzer.health += 10;
+                if (panzer.health >= 90) {
+                    panzer.health = 100;
+                }
+                else {
+                    panzer.health += 10;
+                }
             }
 
             // Case: Shotgun collected
@@ -2505,7 +2508,12 @@ var draw = function() {
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                panzer.health += 10;
+                if (panzer.health >= 90) {
+                    panzer.health = 100;
+                }
+                else {
+                    panzer.health += 10;
+                }
             }
 
             // Case: Shotgun collected
@@ -2611,7 +2619,12 @@ var draw = function() {
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                panzer.health += 10;
+                if (panzer.health >= 90) {
+                    panzer.health = 100;
+                }
+                else {
+                    panzer.health += 10;
+                }
             }
 
             // Case: Shotgun collected
