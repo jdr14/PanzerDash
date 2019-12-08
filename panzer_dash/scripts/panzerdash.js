@@ -403,7 +403,7 @@ var bulletObj = function(x, y, s) {
     this.w = 4;  // width
     this.l = 7;  // length
     this.speed = new PVector(0, s);
-    this.damage = 2;
+    this.damage = 1;
     this.hit = 0;
 };
 
@@ -516,32 +516,54 @@ laserObj.prototype.draw = function(timeOn) {
     rect(this.x - (this.startWidth * timeOn) / 2, this.y + 4, this.startWidth * timeOn, this.length);
 };
 
-var tankShellObj = function(x, y, s) {
+var tankShellObj = function(x, y, s, gunAngle) {
     this.position = new PVector(x, y);
     this.w = 4;  // width
     this.l = 8;  // length
-    this.speed = new PVector(0, s);
+    this.speed = new PVector(s * Math.cos(gunAngle), s * Math.sin(gunAngle))
+    this.damage = 3;
+    this.hit = 0;
 };
 
 tankShellObj.prototype.draw = function(gunAngle) {
+    if (this.hit === 0) {
+        // Draw the actual tank shell
+        // fill(160, 160, 160);
+        // rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
+        fill(240, 20, 20);
+        ellipse(this.position.x, this.position.y, this.l / 2, this.l / 2);
+    
+        fill(40, 40, 40);
+        ellipse(this.position.x, this.position.y, this.l, this.l);
+        
+        // Add velocity to the shell
+        this.position.add(this.speed); 
+    }
 
-    fill(160, 160, 160);
-    rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
+};
 
-    fill(153, 23, 55);
-    ellipse(this.position.x, this.position.y + this.l / 2, this.w, this.w);
+tankShellObj.prototype.EnemyCollisionCheck = function(enemyList) {
+    for (var i = 0; i < enemyList.length; i++) {
+        var within_x = this.position.x > round(enemyList[i].position.x) && this.position.x < round(enemyList[i].position.x) + TILE_WIDTH;
+        var within_y = this.position.y > round(enemyList[i].position.y) - TILE_HEIGHT && this.position.y < round(enemyList[i].position.y) + TILE_HEIGHT;
 
-    fill(186, 140, 0);
-    ellipse(this.position.x, this.position.y - this.l / 2, this.w, this.w);
-
-    this.position.add(this.speed);
+        if (within_x && within_y && !enemyList[i].defeated && this.hit !== 1) {  // Check that object has not already been collected
+            enemyList[i].health -= this.damage;
+            // case where an emeny is killed
+            if (enemyList[i].health < 1) {
+                enemyList[i].defeated = true;
+                GAME_INST.score++;
+            }
+            this.hit = 1;
+        }
+    }
 };
 
 // This is the main character (i.e. the samurai)
 var tankObj = function(x, y, s) {
     this.x = x;
     this.y = y;
-    this.speed = s;
+    this.speed = 3;
     this.bullets = [];
     this.bulletSpeed = -6;
     this.fireRate = 8;
@@ -578,7 +600,7 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
         }
     }
     else {
-        self.speed = 2;
+        self.speed = 3;
         if (self.rechargeNeeded) {
             self.rechargeTime -= 1;
         }
@@ -878,7 +900,7 @@ var tankUpgradedObj = function(x, y, s) {
     // Tank Aiming variables
     this.rotationAllowed = false;
     this.currGunAngle = 0;
-    this.aimSpeed = 1;  // Aiming time delay in milliseconds
+    this.aimSpeed = 2;  // Aiming time delay in milliseconds
     
     this.bullets = [];
     this.bulletSpeed = -6;
@@ -888,7 +910,9 @@ var tankUpgradedObj = function(x, y, s) {
     this.tankShellSpeed = -10;
     this.autoFireEnabled = false;
     this.prevFrameCount = 0;
+
     this.fireRate = 8;
+    this.cannonFireRate = 14;
 
     this.boostAvailable = 100;
     this.rechargeNeeded = false;
@@ -921,7 +945,7 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
         }
     }
     else {
-        self.speed = 2;
+        self.speed = 3;
         if (self.rechargeNeeded) {
             self.rechargeTime--;
         }
@@ -932,6 +956,20 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
         }
     }
     image(Assets_t.PANZER, this.x, this.y, TILE_WIDTH, TILE_HEIGHT);
+
+    // Aiming (rotation/translation) of the tank gun
+    if (!DISABLE.LEFT) {
+        this.currGunAngle -= this.aimSpeed;
+    }
+    if (!DISABLE.RIGHT) {
+        this.currGunAngle += this.aimSpeed;
+    }
+    pushMatrix();
+    translate(this.x + TILE_WIDTH / 2, this.y + TILE_HEIGHT / 2);  // Move to the center of rotation
+    rotate(radians(this.currGunAngle));
+    translate( -(this.x + TILE_WIDTH / 2), -(this.y + TILE_HEIGHT / 2));  // Move back
+    image(Assets_t.PANZER_GUN, this.x, this.y, TILE_WIDTH, TILE_HEIGHT);
+    popMatrix();
 
     if (!DISABLE.DOWN) {
         this.autoFireEnabled = !this.autoFireEnabled;  // toggle the auto fire enabled option
@@ -950,11 +988,14 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
                 this.fireRate = 4;
             }
         }   
-        // if (frameCount % 5 === 0) { 
-        //     this.bullets.push(new bulletObj(this.x + TILE_WIDTH * 2 / 3, this.y, this.bulletSpeed));
-        // }
-        if (frameCount % 8 === 0) { // TODO: Add more diversity to tank ammunition
-            this.tankShells.push(new tankShellObj(this.x + TILE_WIDTH / 2, this.y, this.tankShellSpeed));
+        
+        // Load tank shells 
+        if (frameCount % this.cannonFireRate === 0) { 
+            this.tankShells.push(new tankShellObj(
+                this.x + TILE_WIDTH / 2, 
+                this.y + TILE_WIDTH / 2, 
+                this.tankShellSpeed, 
+                radians(this.currGunAngle + 90)));
         }
         //this.laserOn = true;
         this.laser = new laserObj(this.x + TILE_WIDTH / 2, this.y);
@@ -989,37 +1030,46 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
         }
     }
 
-    // Aiming (rotation/translation) of the tank gun
-    if (!DISABLE.LEFT) {
-        this.currGunAngle -= this.aimSpeed;
+    // Draw the regular machine gun bullets
+    for (var i = 0; i < this.tankShells.length; i++) {
+        this.tankShells[i].draw(this.currGunAngle);
+        if (loopIterations === 0 && currentLevel === GameState_e.LEVEL_ONE) { // Level 1: 1st wave of enemies (1st map iteration)
+            this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObjects);
+        }
+        else if (loopIterations === 0 && currentLevel === GameState_e.LEVEL_TWO) { // Level 2: 1st wave of enemies (1st map iteration)
+            this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObjects3);
+        }
+        else if (loopIterations === 0 && currentLevel === GameState_e.LEVEL_THREE) { // Level 3: 1st wave of enemies (1st map iteration)
+            this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObjects5);
+        }
+        else if (loopIterations === 1 && currentLevel === GameState_e.LEVEL_ONE) { // Level 1: 2nd wave of enemies (2nd map iteration)
+            this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObjects2);
+        }
+        else if (loopIterations === 1 && currentLevel === GameState_e.LEVEL_TWO) { // Level 2: 2nd wave of enemies (2nd map iteration)
+            this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObject4);
+        }
+        else if (loopIterations === 1 && currentLevel === GameState_e.LEVEL_THREE) { // Level 3: 2nd wave of enemies (2nd map iteration)
+            this.tankShells[i].EnemyCollisionCheck(GAME_INST.enemyObjects6);
+        }
+
+        // Make sure to keep the array at a manageable iteration size so as to not bog down the game
+        if (this.tankShells.length > 100) {
+            this.tankShells.splice(0, 1);
+        }
     }
-    if (!DISABLE.RIGHT) {
-        this.currGunAngle += this.aimSpeed;
-    }
-    translate(this.x + TILE_WIDTH / 2, this.y + TILE_HEIGHT / 2);  // Move to the center of rotation
-    rotate(radians(this.currGunAngle));
-    translate( -(this.x + TILE_WIDTH / 2), -(this.y + TILE_HEIGHT / 2));  // Move back
-    image(Assets_t.PANZER_GUN, this.x, this.y, TILE_WIDTH, TILE_HEIGHT);
     
+    // laser gun option
     if (!this.laserOn || this.prevFrameCount === 0) {
         this.prevFrameCount = frameCount;
     }
-
     if (frameCount - this.prevFrameCount < 16) {
         this.laser.draw( (frameCount - this.prevFrameCount) / 2);
     }
     else {
         this.laser.draw(8);
     }
-
     if (DISABLE.UP && !this.autoFireEnabled) {  // Ensure laser is properly turned off
         this.laserOn = false;
-    }
-    
-    // TODO: Implement normal tank shell rounds
-    // Draw the tank shell rounds
-    for (var i = 0; i < this.tankShells.length; i++) {
-        this.tankShells[i].draw(this.currGunAngle);
     }
 };
 
@@ -1030,7 +1080,7 @@ var enemy1Obj = function(x, y) {
     this.wanderDistance = random(0, 100);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 14;
+    this.health = 16;
     this.objectType = ObjectType_e.ENEMY;
 };
 
@@ -1067,7 +1117,7 @@ var enemy2Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 22;
+    this.health = 26;
     this.bullets = [];
     this.objectType = ObjectType_e.ENEMY;
 };
