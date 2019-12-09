@@ -1,28 +1,57 @@
 /*
- * Notes:
+ * About this project:
  *
- * My goal with this program was to demonstrate a variety of learnings we have had in class
- * as well as some additional research I conducted on my own to bring this project to life.
+ * Summary: Our goal with this program was to demonstrate a variety of learnings we have had in class
+ * as well as some additional research we conducted on our own to bring this project to life.
+ * In addition, we wanted to have fun making our first video game project (aside from the smaller
+ * projects we have completed in our video game design (ECE 4525) class).  Our Project 
  *
- * Movement: This project features movement based on keypresses as the main character is 
+ * Movement (via keyboard input): This project features movement based on keypresses as the main character is 
  * controlled by the WASD keys.  
  *
- * Collision Detection: I have implemented collision detection differently for the collectable
- * items, physical barriers, and enemies.
+ * Collision Detection: We have implemented collision detection for the collectable
+ * items, physical barriers, enemies, and ammunition.
  *
- * Tilemap: Red Samurai game contains an in depth and unique tilemap in this game.  Total,
- * the tilemap is 1000x1000 pixels with each tile taking 20x20.
+ * Custom and Randomized Tilemap: The PanzerDash game contains a unique tilemap for every gameplay
+ * thanks to a special function we developed to generate custom tilemaps based on a given difficulty
+ * the caller of the function can either specify EASY, MEDIUM, or HARD, and the random tilemap function
+ * then uses probability and the random function to build each line of the tilemap.  For easy, the 
+ * enemies are fewer and easier to combat.  Medium brings more enemies at a higher difficulty.  Hard
+ * creates the highest concentration of enemies with the hardest difficulty
  *
  * Translation: This game also takes advantage of translation to give the player the feeling of
- * an overhead camera tracking their player on a 400x400 grid.
+ * an overhead camera tracking their player on an 800 x 600 grid.
  *
- * Artist: 
- *     Alex Shammas 
- * Programmer: 
- *     Joey (Joseph) Rodgers
- *     Jovany Cabrera 
+ * Rotation: This game also features rotation to rotate the tank gun .png on top of the tank base to 
+ * simulate a real tank
+ *
+ * Animations: We have animated our transitions, screens, and in game pickups to add character to our game
+ *
+ * Heads Up Display: We use available processingJS functions to give the user visible data on their life,
+ * score, and boost available in game.  This is a common feature in most games.
+ *
+ * AI Enemy Algorithms: Our in game enemy AIs make use of wander and seek & find algorithms to present an adequate
+ * challenge to the player (so they don't get bored)
+ *
+ * FSM (Finite State Machine): We use an FSM to keep track of our game states in processing's draw callback function
+ * This FSM is well designed, robust, and was modeled after a diagram we first created when drafting up the idea of 
+ * the game.
+ *
+ * Unique/Variety of Playing Fields and Enemies: Our game features several maps and enemies to demonstrate creativity
+ * and give some flavor to our game.
+ *
+ * Note: The development of this game was inspired by the "Raptor: Call of the Shadows" game I played as a kid.  
+ *
+ * Originally developed for the final project of ECE 4525 (Video Game Design) class at Virginia Tech on 12/19
+ *
+ * Artist(s): 
+ *     Alex Shammas (SCAD)
+ * Programmer(s): 
+ *     Joey (Joseph) Rodgers (VT: Software Systems)
+ *     Jovany Cabrera (VT: Software Systems)
  */
 
+// Play Screen Dimensions
 var SCREEN_WIDTH = 800;
 var SCREEN_HEIGHT = 600;
 
@@ -30,14 +59,11 @@ var sketchProc=function(processingInstance){ with (processingInstance) {
 size(SCREEN_WIDTH, SCREEN_HEIGHT); 
 frameRate(60);
 
-//ProgramCodeGoesHere
-
 // Global var/switch to enforce a certain pixel count for height and width per tile
 var TILE_HEIGHT = 80; 
 var TILE_WIDTH = TILE_HEIGHT * SCREEN_HEIGHT / SCREEN_WIDTH;  // Keep proportions in line with aspect ratio 
 var TILE_MAP_LENGTH = 50;
 
-// TODO: Redo preloading assets
 // Preload necessary game assets by using Processing's preload directive
 /*
     @pjs 
@@ -109,20 +135,6 @@ var TILE_MAP_LENGTH = 50;
     crisp='true';
 */
 
-// playSound(getSound('../assets/sound_files/tank.wav'));
-// function playAudio() {
-//     audio.play();
-// }   
-
-// function pauseAudio() {
-//     audio.pause();
-// }
-
-// function cancelAudio() {
-//     audio.pause();
-//     audio.currentTime = 0;
-// }
-
 // Enum for each game state in the PanzerDash FSM diagram
 var GameState_e = {
     START_SCREEN: 0, // Start Screen
@@ -138,7 +150,8 @@ var GameState_e = {
     ANIMATED_LOSE_TRANSITION: 10,
     ANIMATED_HELP_TRANSITION: 11,
     ANIMATED_MENU_TRANSITION: 12, 
-    DEFAULT: 13,
+    FINAL_STAGE: 13,
+    DEFAULT: 14,
 };
 
 // Created a struct like variable to store the different game screens
@@ -217,8 +230,8 @@ var Assets_t = {
     ENEMY3_TURRET: loadImage('../assets/enemies/enemy3_turret.png'),
     ENEMY4_BASE:   loadImage('../assets/enemies/enemy4_base.png'),
     ENEMY4_TURRET: loadImage('../assets/enemies/enemy4_turret.png'),
-    BOSS1_BASE:    loadImage('../assets/enemies/boss_base.png'),
-    BOSS1_FRONT:   loadImage('../assets/enemies/boss_front.png'),
+    BOSS_BASE:    loadImage('../assets/enemies/boss_base.png'),
+    BOSS_FRONT:   loadImage('../assets/enemies/boss_front.png'),
 
     // Main character upgrades
     SHOT_GUN_PICKUP: loadImage('../assets/pickups/pickup_shotgun.png'),
@@ -502,9 +515,44 @@ shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList) {
     }
 };
 
+shotBulletObj.prototype.TankCollsionCheck = function() {
+    // Check bullet stream 1
+    var within_x = round(this.pos1.x) > panzer.x && round(this.pos1.x) < panzer.x + TILE_WIDTH;
+    var within_y = round(this.pos1.y) > (panzer.y) && round(this.pos1.y) < panzer.y + TILE_HEIGHT;
+
+    if (within_x && within_y && (this.hit1 !== 1)) {
+        panzer.health -= this.damage;
+        this.hit1 = 1;
+        within_x = false;
+        return;
+    }
+
+    // Check bullet stream 2
+    var within_x = round(this.pos2.x) > panzer.x && round(this.pos2.x) < panzer.x + TILE_WIDTH;
+    var within_y = round(this.pos2.y) > (panzer.y) && round(this.pos2.y) < panzer.y + TILE_HEIGHT;
+
+    if (within_x && within_y && (this.hit2 !== 1)) {
+        panzer.health -= this.damage;
+        this.hit2 = 1;
+        within_x = false;
+        return;
+    }
+
+    // Check bullet stream 3
+    var within_x = round(this.pos3.x) > panzer.x && round(this.pos3.x) < panzer.x + TILE_WIDTH;
+    var within_y = round(this.pos3.y) > (panzer.y) && round(this.pos3.y) < panzer.y + TILE_HEIGHT;
+
+    if (within_x && within_y && (this.hit3 !== 1)) {
+        panzer.health -= this.damage;
+        this.hit3 = 1;
+        within_x = false;
+        return;
+    }
+}
+
 bulletObj.prototype.TankCollsionCheck = function() {
     var within_x = round(this.position.x) > panzer.x && round(this.position.x) < panzer.x + TILE_WIDTH;
-    var within_y = round(this.position.y) > (panzer.y)&& round(this.position.y) < panzer.y + TILE_HEIGHT;
+    var within_y = round(this.position.y) > (panzer.y) && round(this.position.y) < panzer.y + TILE_HEIGHT;
 
     if (within_x && within_y && (this.hit !== 1)) {
         panzer.health -= this.damage;
@@ -667,6 +715,9 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
         else if (loopIterations === 1 && currentLevel === GameState_e.LEVEL_THREE) { // Level 3: 2nd wave of enemies (2nd map iteration)
             this.bullets[i].EnemyCollisionCheck(GAME_INST.enemyObjects6);
         }
+        else if (currentLevel === GameState_e.FINAL_STAGE) {
+            this.bullets[i].EnemyCollisionCheck(GAME_INST.bossArray);
+        }
 
         // Make sure to keep the array at a manageable iteration size so as to not bog down the game
         if (this.bullets.length > 100) {
@@ -713,13 +764,6 @@ var checkCollisionWithEnemies = function(tank, enemyObjects) {
             return true;
         }
     }
-};
-
-/*
- * Pass in an array containing the collectable objects within the game tilemap
- */
-var checkCollisionWithBullets = function(tank, collectableObjects) {
-    // TODO: 
 };
 
 var upgradedObj = function(x, y) {
@@ -1229,7 +1273,7 @@ var enemy4Obj = function(x, y, s) {
     this.wanderDistance = random(0, 600);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 80;
+    this.health = 60;
     this.bullets = [];
     this.objectType = ObjectType_e.ENEMY;
 };
@@ -1269,12 +1313,47 @@ var bossEnemy = function(x, y) {
     this.wanderDistance = random(0, 100);
     this.pursueTarget = new PVector(0, 0);
     this.defeated = false;
-    this.health = 1500;
+    this.health = 350;
     this.objectType = ObjectType_e.ENEMY;
+
+    this.rightGun = [];
+    this.leftGun = [];
+    this.centerGun = [];
 };
 
 bossEnemy.prototype.draw = function() {
-    // image();
+    if (!this.defeated) {
+        image(Assets_t.BOSS_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.BOSS_FRONT, this.position.x, this.position.y + TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
+        
+        // add bullet to bullet list
+        if (loopCount % 10 === 0) {
+            this.rightGun.push(new bulletObj(this.position.x + TILE_WIDTH, this.position.y + TILE_HEIGHT, 8));
+        }
+
+        if (loopCount % 10 === 0) {
+            this.leftGun.push(new bulletObj(this.position.x - TILE_WIDTH, this.position.y + TILE_HEIGHT, 8));
+        }
+
+        if (loopCount % 15 === 0) {
+            this.centerGun.push(new shotBulletObj(this.position.x, this.position.y, 7))
+        }
+
+        for (var i = 0; i < this.rightGun.length; i++) {
+            this.rightGun[i].draw(1);
+            this.rightGun[i].TankCollsionCheck();
+        }
+
+        for (var i = 0; i < this.leftGun.length; i++) {
+            this.leftGun[i].draw(1);
+            this.leftGun[i].TankCollsionCheck();
+        }
+
+        for (var i = 0; i < this.centerGun.length; i++) {
+            this.centerGun[i].draw();
+            this.centerGun[i].TankCollsionCheck();
+        }
+    }
 };
 
 bossEnemy.prototype.wander = function() {
@@ -1289,10 +1368,18 @@ bossEnemy.prototype.wander = function() {
         this.wanderAngle += random(-90, 90);
     }
 
-    if (this.position.x > 800) {this.position.x = 10;}
-    else if (this.position.x < 5) {this.position.x = 790;}
-    if (this.position.y > (oldY + 150)) {this.position.y = (oldY - 10);}
-    else if (this.position.y < (oldY - 150)) {this.position.y = (oldY + 10);}
+    if (this.position.x > 800) {
+        this.position.x = 10;
+    }
+    else if (this.position.x < 5) {
+        this.position.x = 790;
+    }
+    if (this.position.y > (oldY + 150)) {
+        this.position.y = (oldY - 10);
+    }
+    else if (this.position.y < (oldY - 150)) {
+        this.position.y = (oldY + 10);
+    }
 }
 
 var prevTime = 0;
@@ -1361,6 +1448,8 @@ var gameObj = function() {
     this.score = 0;
     this.scoreMultiplier = 10;
     this.enemyCount = 0;
+
+    this.bossArray = [];
 };
 
 // Probability generator function simulates rolling dice and getting a number back from 1 -> 12
@@ -1711,7 +1800,12 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 }
 
                 // Finally, add the randomly assembled line to the tilemap
+                // if (i === 1) {
+                //     tMap.push("      z     ");
+                // }
+                // else {
                 tMap.push(line);
+                //}
             }
             tMap.push("            ");
             tMap.push("            ");
@@ -1773,6 +1867,9 @@ gameObj.prototype.initialize = function() {
                 case 'h':
                     this.gameObjects.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
                     break;
+                case 'z':
+                    this.enemyObjects.push(new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    break;
                 default:
                     break;
             }
@@ -1806,6 +1903,9 @@ gameObj.prototype.initialize = function() {
                     break;
                 case 'h':
                     this.gameObjects2.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    break;
+                case 'z':
+                    this.enemyObjects2.push(new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT));
                     break;
                 default:
                     break;
@@ -1841,6 +1941,9 @@ gameObj.prototype.initialize = function() {
                 case 'h':
                     this.gameObjects3.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
                     break;
+                case 'z':
+                    this.enemyObjects3.push(new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    break;
                 default:
                     break;
             }
@@ -1874,6 +1977,9 @@ gameObj.prototype.initialize = function() {
                     break;
                 case 'h':
                     this.gameObjects4.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    break;
+                case 'z':
+                    this.enemyObjects4.push(new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT));
                     break;
                 default:
                     break;
@@ -1909,6 +2015,9 @@ gameObj.prototype.initialize = function() {
                 case 'h':
                     this.gameObjects5.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
                     break;
+                case 'z':
+                    this.enemyObjects5.push(new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    break;
                 default:
                     break;
             }
@@ -1943,11 +2052,16 @@ gameObj.prototype.initialize = function() {
                 case 'h':
                     this.gameObjects6.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
                     break;
+                case 'z':
+                    this.enemyObjects6.push(new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    break;
                 default:
                     break;
             }
         }
     }
+
+    this.bossArray.push(new bossEnemy(SCREEN_WIDTH / 0));
 };
 
 var createTank = function(x, y, s, tankType) {
@@ -2034,6 +2148,14 @@ gameObj.prototype.drawLevelThree = function(y, loopIteration) {
                 GAME_INST.gameObjects6[i].draw(y);
             }
         }
+    }
+}
+
+gameObj.prototype.drawFinalStage = function() {
+    image(GameScreens_t.LEVEL_THREE, this.xCoor, this.yCoor);
+    for(var i = 0; i < GAME_INST.bossArray.length; i++) {
+        GAME_INST.bossArray[i].draw();
+        GAME_INST.bossArray[i].wander();
     }
 }
 
@@ -2326,6 +2448,9 @@ var animationFinished = false;
 var animationCount = 0;
 var fontSize = 48;
 var loopIterations = 0;
+
+var bossArray = [];
+bossArray.push(new bossEnemy(0, 0));
 
 /*
  * Overload Processing's callback function 
@@ -2643,7 +2768,7 @@ var draw = function() {
             if (loopIterations === 2) {  
                 loopCount = -3400;
                 loopIterations = 0;
-                changeGameState(GameState_e.ANIMATED_WIN_TRANSITION);
+                changeGameState(GameState_e.FINAL_STAGE);
             }
 
             // Life bar 
@@ -2727,6 +2852,75 @@ var draw = function() {
             if (upgradeCollected === ObjectType_e.MINI_GUN) {
                 panzer.miniGunEnabled = true;
             }
+
+            popMatrix();
+            break;
+
+        case GameState_e.FINAL_STAGE:
+            changeGameState(GameState_e.ANIMATED_WIN_TRANSITION);
+
+            pushMatrix();
+            translate(-3400);
+            //image(GameScreens_t.LEVEL_THREE, 0, 0);
+            GAME_INST.drawFinalStage();
+            //var boss = new bossEnemy(0, 0);
+            //boss.draw();
+            //boss.wander();
+
+            loopCount++;
+            if (loopCount > 0) { 
+                loopCount = -3400;
+                //panzer.y = 0;
+            }
+
+            // Main functionality of the panzer tank
+            panzer.draw(loopCount, GameState_e.FINAL_STAGE);
+
+            checkCollisionWithEnemies(panzer, GAME_INST.bossArray);
+            
+            // bossArray[0].draw();
+            // bossArray[0].wander();
+
+            // Lose Condition = Health is fully diminished and (tank is dead)
+            if (panzer.health <= 0) { 
+                changeGameState(GameState_e.ANIMATED_LOSE_TRANSITION);
+            }
+            
+            // Win Condition (defeat the boss)
+            if (GAME_INST.bossArray[0].health <= 0) {
+                changeGameState(GameState_e.ANIMATED_WIN_TRANSITION);
+            }
+
+            // // Life bar 
+            // stroke();
+            // fill(50, 230, 50);
+            // rect(80, SCREEN_HEIGHT - 20);
+            // fill(240, 30, 30);
+            // rect(180 - (100 - panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - panzer.health, 10);
+
+            // // Boost bar
+            // fill(30, 30, 240);
+            // rect(100, -loopCount + SCREEN_HEIGHT * 23 / 24, 100, 10);
+            // fill(240, 30, 30);
+            // if (panzer.boostAvailable > 0) {
+            //     rect(200 - (100 - panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - panzer.boostAvailable, 10);
+            //     text("BOOST:  " + panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+            // }
+            // else {
+            //     rect(
+            //         200 - (floor(panzer.rechargeTime / 3)), 
+            //         -loopCount + SCREEN_HEIGHT * 23 / 24, 
+            //         floor(panzer.rechargeTime / 3), 
+            //         10);
+            //     text("BOOST:  " + (100 - floor(panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+            // } 
+
+            // // Display character's health as a part of the H.U.D.
+            // fill(240, 30, 30);
+            // textSize(14);
+            // text("LIFE:  " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            // text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
+            // noStroke();
 
             popMatrix();
             break;
@@ -2870,6 +3064,5 @@ var draw = function() {
             break;
     } // End switch
 };  // End draw()
-
 
 }};  // End program
