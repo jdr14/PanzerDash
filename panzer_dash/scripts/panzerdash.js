@@ -432,10 +432,18 @@ var bulletObj = function(x, y, s) {
     this.speed = new PVector(0, s);
     this.damage = 2;
     this.hit = 0;
+
+    // These variables are to control the range that the bullet can go
+    this.travelDistance = 0;
+    this.range = 100;
+    this.outOfRange = false;
 };
 
 bulletObj.prototype.draw = function(c) {
-    if(this.hit === 0) {
+    // if (this.travelDistance >= this.range) {
+    //     this.outOfRange = true;
+    // }
+    if(this.hit === 0 && !this.outOfRange) {
         noStroke();
         if (c === 1)
         {
@@ -449,19 +457,20 @@ bulletObj.prototype.draw = function(c) {
             rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
             ellipse(this.position.x, this.position.y, this.w, this.w);
         }
+
         this.position.add(this.speed);
     }
+    // this.travelDistance += 1;
 };
 
 bulletObj.prototype.hitTank = function() {
-    var temp = (panzer.y+loopCount - SCREEN_HEIGHT * 1 / 20);
+    var temp = (panzer.y + loopCount - SCREEN_HEIGHT * 1 / 20);
     if (dist(panzer.x, panzer.y, this.position.x, this.position.y) > 2) {
         fill(122, 120, 113);
         rect(this.position.x - (this.w*2) / 2, this.position.y, (this.w*2), (2*this.l));
         ellipse(this.position.x, this.position.y, (2*this.w), (2*this.w));
         this.speed.set(panzer.x - this.position.x, 3);
         this.speed.normalize();
-        // this.speed.mult(4);
         this.position.add(this.speed);
     }
 }
