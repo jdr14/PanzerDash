@@ -442,7 +442,7 @@ var bulletObj = function(x, y, s) {
 bulletObj.prototype.draw = function(c) {
     // if (this.travelDistance >= this.range) {
     //     this.outOfRange = true;
-    // }
+    // } 
     if(this.hit === 0 && !this.outOfRange) {
         noStroke();
         if (c === 1)
