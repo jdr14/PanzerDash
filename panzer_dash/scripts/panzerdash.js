@@ -2680,7 +2680,7 @@ var panzer = createTank(
     SCREEN_WIDTH / 2 - TILE_WIDTH / 2, 
     -loopCount + SCREEN_HEIGHT * 2 / 3, 
     tankSpeed, 
-    TankOptions_e.UPGRADED);
+    TankOptions_e.BASIC);
 var upgradeCollected = false;
 var tankUpgraded = false;
 var animationFinished = false;
@@ -3097,6 +3097,7 @@ var draw = function() {
          * -----------------
          * |  FINAL STAGE  |
          * -----------------
+         * This is a non scrolling stage
          */
         case GameState_e.FINAL_STAGE:
 
@@ -3110,7 +3111,6 @@ var draw = function() {
             loopCount++;
             if (loopCount > 0) { 
                loopCount = -3400;
-               //panzer.y = 0;
             }
 
             var tem = -3800;
