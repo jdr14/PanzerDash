@@ -504,10 +504,12 @@ bulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
 
 shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
     if (level === GameState_e.FINAL_STAGE) {
-        var within_x = this.position.x > round(GAME_INST.finalBoss.base_x) 
-            && this.position.x < round(GAME_INST.finalBoss.base_x) + tile_width;
-        var within_y = this.position.y > round(GAME_INST.finalBoss.base_y)
-            && this.position.y < round(GAME_INST.finalBoss.base_y) + GAME_INST.finalBoss.base_height;
+        var tile_height = BOSS_HEIGHT;
+        var tile_width = BOSS_WIDTH;
+        var within_x = this.pos1.x > round(GAME_INST.finalBoss.base_x) 
+            && this.pos1.x < round(GAME_INST.finalBoss.base_x) + tile_width;
+        var within_y = this.pos1.y > round(GAME_INST.finalBoss.base_y)
+            && this.pos1.y < round(GAME_INST.finalBoss.base_y) + GAME_INST.finalBoss.base_height;
 
         // Check bullet 1 collision
         if (within_x && within_y && !GAME_INST.finalBoss.defeated && this.hit1 !== 1) {  
@@ -520,9 +522,10 @@ shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
         }
         
         // update the x and y collision boolean values
-        within_x = this.pos2.x > round(GAME_INST.finalBoss.position.x) && this.pos2.x < round(GAME_INST.finalBoss.position.x) + tile_width;
-        within_y = this.pos2.y > round(GAME_INST.finalBoss.position.y) - tile_height && this.pos2.y < round(GAME_INST.finalBoss.position.y) + tile_height;
-        
+        within_x = this.pos2.x > round(GAME_INST.finalBoss.base_x) 
+            && this.pos2.x < round(GAME_INST.finalBoss.base_x) + tile_width;
+        within_y = this.pos2.y > round(GAME_INST.finalBoss.base_y)
+            && this.pos2.y < round(GAME_INST.finalBoss.base_y) + GAME_INST.finalBoss.base_height;
         // Check bullet 2 collision
         if (within_x && within_y && !GAME_INST.finalBoss.defeated && this.hit2 !== 1) {  
             GAME_INST.finalBoss.health -= this.damage;
@@ -534,9 +537,11 @@ shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
         }
         
         // update the x and y collision boolean values
-        within_x = this.pos3.x > round(GAME_INST.finalBoss.position.x) && this.pos3.x < round(GAME_INST.finalBoss.position.x) + tile_width;
-        within_y = this.pos3.y > round(GAME_INST.finalBoss.position.y) - tile_height && this.pos3.y < round(GAME_INST.finalBoss.position.y) + tile_height;
-    
+        within_x = this.pos3.x > round(GAME_INST.finalBoss.base_x) 
+            && this.pos3.x < round(GAME_INST.finalBoss.base_x) + tile_width;
+        within_y = this.pos3.y > round(GAME_INST.finalBoss.base_y)
+            && this.pos3.y < round(GAME_INST.finalBoss.base_y) + GAME_INST.finalBoss.base_height;
+
         // Check bullet 3 collision
         if (within_x && within_y && !GAME_INST.finalBoss.defeated && this.hit3 !== 1) { 
             GAME_INST.finalBoss.health -= this.damage;
@@ -602,7 +607,6 @@ shotBulletObj.prototype.TankCollsionCheck = function() {
         panzer.health -= this.damage;
         this.hit1 = 1;
         within_x = false;
-        return;
     }
 
     // Check bullet stream 2
@@ -613,7 +617,6 @@ shotBulletObj.prototype.TankCollsionCheck = function() {
         panzer.health -= this.damage;
         this.hit2 = 1;
         within_x = false;
-        return;
     }
 
     // Check bullet stream 3
@@ -624,8 +627,8 @@ shotBulletObj.prototype.TankCollsionCheck = function() {
         panzer.health -= this.damage;
         this.hit3 = 1;
         within_x = false;
-        return;
     }
+    return;
 }
 
 bulletObj.prototype.TankCollsionCheck = function() {
@@ -775,10 +778,10 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     if (!DISABLE.UP || this.autoFireEnabled) {  // Fire the gun
         if (frameCount % this.fireRate === 0) {
             if (!this.shotGunEnabled) {
-                this.bullets.push(new bulletObj(this.x + TILE_WIDTH * 5 / 9, this.y + TILE_HEIGHT / 6, this.bulletSpeed));
+                this.bullets.push(new bulletObj(this.x + TILE_WIDTH / 2, this.y + TILE_HEIGHT / 6, this.bulletSpeed));
             }
             else {  // Shotgun enabled
-                this.bullets.push(new shotBulletObj(this.x + TILE_WIDTH * 5 / 9, this.y + TILE_HEIGHT / 6, this.bulletSpeed));
+                this.bullets.push(new shotBulletObj(this.x + TILE_WIDTH / 2, this.y + TILE_HEIGHT / 6, this.bulletSpeed));
             }
             if (this.miniGunEnabled) {
                 this.fireRate = 4;
@@ -912,10 +915,10 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
     if (!DISABLE.UP || this.autoFireEnabled) {  // Fire the gun
         if (frameCount % this.fireRate === 0) {
             if (!this.shotGunEnabled) {
-                this.bullets.push(new bulletObj(this.x + TILE_WIDTH * 2 / 3, this.y - TILE_WIDTH / 6, this.bulletSpeed));
+                this.bullets.push(new bulletObj(this.x + TILE_WIDTH / 2, this.y - TILE_WIDTH / 6, this.bulletSpeed));
             }
             else {  // Shotgun enabled
-                this.bullets.push(new shotBulletObj(this.x + TILE_WIDTH * 2 / 3, this.y - TILE_WIDTH / 6, this.bulletSpeed));
+                this.bullets.push(new shotBulletObj(this.x + TILE_WIDTH / 2, this.y - TILE_WIDTH / 6, this.bulletSpeed));
             }
             if (this.miniGunEnabled) {
                 this.fireRate = 4;
