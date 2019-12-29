@@ -51,7 +51,7 @@
  *     Jovany Cabrera (VT: Software Systems)
  */
 
-// Play Screen Dimensions
+// Play Screen Dimensions (in pixels)
 var SCREEN_WIDTH = 800;
 var SCREEN_HEIGHT = 600;
 
@@ -61,12 +61,18 @@ var ENABLE_DEBUG_MODE = false;
 
 var sketchProc=function(processingInstance){ with (processingInstance) {
 size(SCREEN_WIDTH, SCREEN_HEIGHT); 
-frameRate(60);
+
+FPS = 60
+frameRate(FPS);
+
+// Variable describing the total map pixel lengths
+var MAP_HEIGHT = 8000;
+var MAP_OFFSET = MAP_HEIGHT - SCREEN_HEIGHT;
 
 // Global var/switch to enforce a certain pixel count for height and width per tile
 var TILE_HEIGHT = 80; 
 var TILE_WIDTH = TILE_HEIGHT * SCREEN_HEIGHT / SCREEN_WIDTH;  // Keep proportions in line with aspect ratio 
-var TILE_MAP_LENGTH = 50;
+var TILE_MAP_LENGTH = MAP_HEIGHT / TILE_HEIGHT;
 
 // Custom tile dimmensions for the boss 
 var BOSS_HEIGHT = TILE_HEIGHT * 2;
@@ -427,8 +433,8 @@ shotBulletObj.prototype.draw = function(c) {
 
 var bulletObj = function(x, y, s) {
     this.position = new PVector(x, y);
-    this.w = 4;  // width
-    this.l = 7;  // length
+    this.w = 2;  // width
+    this.l = 12;  // length
     this.speed = new PVector(0, s);
     this.damage = 2;
     this.hit = 0;
@@ -439,28 +445,34 @@ var bulletObj = function(x, y, s) {
     this.outOfRange = false;
 };
 
-bulletObj.prototype.draw = function(c) {
-    // if (this.travelDistance >= this.range) {
-    //     this.outOfRange = true;
-    // } 
+bulletObj.prototype.draw = function(type) {
+    //if (this.travelDistance >= this.range) {
+    //    this.outOfRange = true;
+    //} 
     if(this.hit === 0 && !this.outOfRange) {
         noStroke();
-        if (c === 1)
+        if (type === 1) // type 1 signifies enemy bullets
         {
-            fill(72, 80, 83);
-            rect(this.position.x - (this.w * 2) / 2, this.position.y, (this.w * 2), (2 * this.l));
-            ellipse(this.position.x, this.position.y, (2 * this.w), (2 * this.w));
+            fill(99, 0, 0);
+            rect(this.position.x - (this.w * 2) / 2, this.position.y + (3 / 2 * this.l), (this.w * 3), (1 / 2 * this.l));
+            
+            fill(252, 66, 53);
+            rect(this.position.x - (this.w * 2) / 2, this.position.y, (this.w * 3), (3 / 2 * this.l));
+            //ellipse(this.position.x, this.position.y, (2 * this.w), (2 * this.w));
         }
-        else
+        else // main character machine gun bullets
         {
             fill(31, 31, 24);
-            rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
-            ellipse(this.position.x, this.position.y, this.w, this.w);
+            rect(this.position.x - this.w / 2, this.position.y, this.w, this.l / 2);
+            
+            fill(255, 228, 120);
+            rect(this.position.x - this.w / 2, this.position.y + this.l / 2, this.w, this.l / 2);
+            //ellipse(this.position.x, this.position.y, this.w, this.w);
         }
 
         this.position.add(this.speed);
     }
-    // this.travelDistance += 1;
+    //this.travelDistance += 1;
 };
 
 bulletObj.prototype.hitTank = function() {
@@ -515,8 +527,11 @@ shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
     if (level === GameState_e.FINAL_STAGE) {
         var tile_height = BOSS_HEIGHT;
         var tile_width = BOSS_WIDTH;
+        
+        // Set the x and y collision values
         var within_x = this.pos1.x > round(GAME_INST.finalBoss.base_x) 
             && this.pos1.x < round(GAME_INST.finalBoss.base_x) + tile_width;
+
         var within_y = this.pos1.y > round(GAME_INST.finalBoss.base_y)
             && this.pos1.y < round(GAME_INST.finalBoss.base_y) + GAME_INST.finalBoss.base_height;
 
@@ -533,8 +548,10 @@ shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
         // update the x and y collision boolean values
         within_x = this.pos2.x > round(GAME_INST.finalBoss.base_x) 
             && this.pos2.x < round(GAME_INST.finalBoss.base_x) + tile_width;
+
         within_y = this.pos2.y > round(GAME_INST.finalBoss.base_y)
             && this.pos2.y < round(GAME_INST.finalBoss.base_y) + GAME_INST.finalBoss.base_height;
+
         // Check bullet 2 collision
         if (within_x && within_y && !GAME_INST.finalBoss.defeated && this.hit2 !== 1) {  
             GAME_INST.finalBoss.health -= this.damage;
@@ -1161,6 +1178,7 @@ healthPickUp.prototype.draw = function(m) {
     if (div >= waitTime * 7) {
         this.movement = -(amplititude / 2);
     }
+    // Draw the health image pickup
     image(
         Assets_t.HEALTH_PICKUP, 
         this.x, 
@@ -1497,9 +1515,9 @@ bossEnemy.prototype.draw = function() {
 
         stroke();
         fill(50, 230, 50);
-        rect(this.position.x, 3400 + this.position.y, 200, 10);
+        rect(this.position.x, MAP_OFFSET + this.position.y, 200, 10);
         fill(240, 30, 30);
-        rect(this.position.x - this.health / 2, 3400 + this.position.y, 200 - panzer.health / 2, 10);
+        rect(this.position.x - this.health / 2, MAP_OFFSET + this.position.y, 200 - panzer.health / 2, 10);
         noStroke()
 
         if (this.rechargeCount <= 0) {
@@ -1648,15 +1666,15 @@ var drawStartScreen = function() {
 var gameObj = function() {
     // Level 1 tilemaps
     this.tilemap = [];
-    this.tilemap2 = [];
+    // this.tilemap2 = [];
 
     // Level 2 tilemaps
     this.tilemap3 = [];
-    this.tilemap4 = [];
+    // this.tilemap4 = [];
 
     // Level 3 tilemaps
     this.tilemap5 = [];
-    this.tilemap6 = [];
+    // this.tilemap6 = [];
     
     // Game objects array for 1st iteration of level 1
     this.gameObjects = [];
@@ -1694,11 +1712,6 @@ var gameObj = function() {
     this.mainCharacter;
 };
 
-// Probability generator function simulates rolling dice and getting a number back from 1 -> 12
-var rollOfTheDice = function() {
-    return round(random(1, 12));
-};
-
 /*
  * Options for the difficulty of the tilemap
  * EASY = fewer enemies, easy to medium enemies only, most health pickups
@@ -1720,7 +1733,7 @@ var MapDifficulty_e = {
  * This function is a very valuable piece to this game as it is nearly impossible to get the
  * same gameplay twice.
  */
-var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
+var createRandomizedTileMap = function(tMap, difficulty) {
     var lineLength = 12;
 
     switch(difficulty) { // Generate a random tilemap based on the difficulty specified
@@ -1769,7 +1782,7 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 var line = "";  // Create a line to be added to the pagemap later
                 
                 // Assemble the line to add to the tilemap
-                if (i === 20 && iterNum === 1) {
+                if (i === 20) {
                     line = healthLine;
                 }
                 else {
@@ -1796,12 +1809,12 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
             }
             tMap.push("            ");
             tMap.push("            ");
-            if (iterNum === 1) {
+            // if (iterNum === 1) {
                 tMap.push("     y      ");
-            }
-            else {
-                tMap.push("            ");
-            }
+            // }
+            // else {
+            //     tMap.push("            ");
+            // }
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
@@ -1875,7 +1888,7 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 var line = "";  // Create a line to be added to the pagemap later
 
                 // Assemble the line to add to the tilemap
-                if (i % 15 === 0 && i != 0 && count < healthLines.length && iterNum === 1) {
+                if (i % 15 === 0 && i != 0 && count < healthLines.length) {
                     line = healthLines[count];
                     count++;
                 }
@@ -1909,12 +1922,12 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
-            if (iterNum === 1) {
+            // if (iterNum === 1) {
                 tMap.push("         m  ");  // m = minigun
-            }
-            else {
-                tMap.push("            ");
-            }
+            // }
+            // else {
+            //     tMap.push("            ");
+            // }
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
@@ -2008,7 +2021,7 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
                 var line = "";  // Create a line to be added to the pagemap later
 
                 // Assemble the line to add to the tilemap
-                if (i % 10 === 0 && i != 0 && count < healthLines.length && iterNum === 1) {
+                if (i % 10 === 0 && i != 0 && count < healthLines.length) {
                     line = healthLines[count];
                     count++;
                 }
@@ -2047,12 +2060,12 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
-            if (iterNum === 1) {
+            // if (iterNum === 1) {
                 tMap.push("    s       ");  // s = shotgun
-            }
-            else {
-                tMap.push("            ");
-            }
+            // }
+            // else {
+            //     tMap.push("            ");
+            // }
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
@@ -2065,16 +2078,16 @@ var createRandomizedTileMap = function(tMap, difficulty, iterNum) {
 gameObj.prototype.initialize = function() {
     // Randomize tilemaps so every game is not the same
     // Create custom tilemaps for level 1
-    createRandomizedTileMap(this.tilemap, MapDifficulty_e.EASY, 1);  // last parameter is iteration of loop number
-    createRandomizedTileMap(this.tilemap2, MapDifficulty_e.EASY, 2);
+    createRandomizedTileMap(this.tilemap, MapDifficulty_e.EASY);
+    // createRandomizedTileMap(this.tilemap2, MapDifficulty_e.EASY, 2);
     
     // Create custom tilemaps for level 2
-    createRandomizedTileMap(this.tilemap3, MapDifficulty_e.MEDIUM, 1);
-    createRandomizedTileMap(this.tilemap4, MapDifficulty_e.MEDIUM, 2);
+    createRandomizedTileMap(this.tilemap3, MapDifficulty_e.MEDIUM);
+    //createRandomizedTileMap(this.tilemap4, MapDifficulty_e.MEDIUM);
     
     // Create custom tilemaps for level 3
-    createRandomizedTileMap(this.tilemap5, MapDifficulty_e.HARD, 1);
-    createRandomizedTileMap(this.tilemap6, MapDifficulty_e.HARD, 2);
+    createRandomizedTileMap(this.tilemap5, MapDifficulty_e.HARD);
+    //createRandomizedTileMap(this.tilemap6, MapDifficulty_e.HARD);
     
     // Initialize arrays based off of tilemap for 1st iteration of the 1st level
     for (var i = 0; i < this.tilemap.length; i++) {
@@ -2114,41 +2127,41 @@ gameObj.prototype.initialize = function() {
     }
 
     // Initialize 2nd iteration of the 1st level
-    for (var i = 0; i < this.tilemap2.length; i++) {  
-        for (var j = 0; j < this.tilemap2[i].length; j++) {
-            switch (this.tilemap2[i][j]) {
-                case 'a':
-                    this.enemyObjects2.push(new enemy1Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'b':
-                    this.enemyObjects2.push(new enemy2Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'c':
-                    this.enemyObjects2.push(new enemy3Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'd':
-                    this.enemyObjects2.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'y':
-                    this.gameObjects2.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'm':
-                    this.gameObjects2.push(new miniGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 's':
-                    this.gameObjects2.push(new shotGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'h':
-                    this.gameObjects2.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'z':
-                    this.finalBoss = new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT);
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
+    // for (var i = 0; i < this.tilemap2.length; i++) {  
+    //     for (var j = 0; j < this.tilemap2[i].length; j++) {
+    //         switch (this.tilemap2[i][j]) {
+    //             case 'a':
+    //                 this.enemyObjects2.push(new enemy1Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'b':
+    //                 this.enemyObjects2.push(new enemy2Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'c':
+    //                 this.enemyObjects2.push(new enemy3Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'd':
+    //                 this.enemyObjects2.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'y':
+    //                 this.gameObjects2.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'm':
+    //                 this.gameObjects2.push(new miniGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 's':
+    //                 this.gameObjects2.push(new shotGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'h':
+    //                 this.gameObjects2.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'z':
+    //                 this.finalBoss = new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT);
+    //                 break;
+    //             default:
+    //                 break;
+    //         }
+    //     }
+    // }
 
     // Initialize 1st iteration of the 2nd level
     for (var i = 0; i < this.tilemap3.length; i++) {  
@@ -2188,41 +2201,41 @@ gameObj.prototype.initialize = function() {
     }
 
     // Initialize 2nd iteration of the 2nd level
-    for (var i = 0; i < this.tilemap4.length; i++) {  
-        for (var j = 0; j < this.tilemap4[i].length; j++) {
-            switch (this.tilemap4[i][j]) {
-                case 'a':
-                    this.enemyObjects4.push(new enemy1Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'b':
-                    this.enemyObjects4.push(new enemy2Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'c':
-                    this.enemyObjects4.push(new enemy3Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'd':
-                    this.enemyObjects4.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'y':
-                    this.gameObjects4.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'm':
-                    this.gameObjects4.push(new miniGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 's':
-                    this.gameObjects4.push(new shotGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'h':
-                    this.gameObjects4.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'z':
-                    this.finalBoss = new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT);
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
+    // for (var i = 0; i < this.tilemap4.length; i++) {  
+    //     for (var j = 0; j < this.tilemap4[i].length; j++) {
+    //         switch (this.tilemap4[i][j]) {
+    //             case 'a':
+    //                 this.enemyObjects4.push(new enemy1Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'b':
+    //                 this.enemyObjects4.push(new enemy2Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'c':
+    //                 this.enemyObjects4.push(new enemy3Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'd':
+    //                 this.enemyObjects4.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'y':
+    //                 this.gameObjects4.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'm':
+    //                 this.gameObjects4.push(new miniGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 's':
+    //                 this.gameObjects4.push(new shotGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'h':
+    //                 this.gameObjects4.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'z':
+    //                 this.finalBoss = new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT);
+    //                 break;
+    //             default:
+    //                 break;
+    //         }
+    //     }
+    // }
 
     // Initialize 1st iteration of the 1st level
     for (var i = 0; i < this.tilemap5.length; i++) {  
@@ -2262,41 +2275,41 @@ gameObj.prototype.initialize = function() {
     }
 
     // Initialize 2nd iteration of the 1st level
-    for (var i = 0; i < this.tilemap6.length; i++) {  
-        for (var j = 0; j < this.tilemap6[i].length; j++) {
-            switch (this.tilemap6[i][j]) {
-                case 'a':
-                    this.enemyObjects6.push(new enemy1Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'b':
-                    this.enemyObjects6.push(new enemy2Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'c':
-                    this.enemyObjects6.push(new enemy3Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'd':
-                    this.enemyObjects6.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'y':
-                    this.gameObjects6.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'm':
-                    this.gameObjects6.push(new miniGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 's':
-                    this.gameObjects6.push(new shotGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'h':
-                    this.gameObjects6.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
-                    break;
-                case 'z':
-                    this.finalBoss = new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT);
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
+    // for (var i = 0; i < this.tilemap6.length; i++) {  
+    //     for (var j = 0; j < this.tilemap6[i].length; j++) {
+    //         switch (this.tilemap6[i][j]) {
+    //             case 'a':
+    //                 this.enemyObjects6.push(new enemy1Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'b':
+    //                 this.enemyObjects6.push(new enemy2Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'c':
+    //                 this.enemyObjects6.push(new enemy3Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'd':
+    //                 this.enemyObjects6.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'y':
+    //                 this.gameObjects6.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'm':
+    //                 this.gameObjects6.push(new miniGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 's':
+    //                 this.gameObjects6.push(new shotGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'h':
+    //                 this.gameObjects6.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+    //                 break;
+    //             case 'z':
+    //                 this.finalBoss = new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT);
+    //                 break;
+    //             default:
+    //                 break;
+    //         }
+    //     }
+    // }
 
     this.finalBoss = new bossEnemy( (SCREEN_WIDTH / 4), 44 * TILE_HEIGHT);
     this.finalHealthPickups = [
@@ -2684,7 +2697,7 @@ GAME_INST.initialize();
 // Also set up any control variables to aid with manipulating the game's FSM
 // and other necessary tasks
 var tankSpeed = 3;
-var loopCount = -3400;
+var loopCount = -MAP_OFFSET;
 var panzer = createTank(
     SCREEN_WIDTH / 2 - TILE_WIDTH / 2, 
     -loopCount + SCREEN_HEIGHT * 2 / 3, 
@@ -2696,6 +2709,39 @@ var animationFinished = false;
 var animationCount = 0;
 var fontSize = 48;
 var loopIterations = 0;
+
+var drawHUD = function() {
+    // Life bar 
+    stroke();
+    fill(50, 230, 50);
+    rect(80, -loopCount + SCREEN_HEIGHT * 1 / 30, 100, 10);
+    fill(240, 30, 30);
+    rect(180 - (100 - panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - panzer.health, 10);
+
+    // Boost bar
+    fill(30, 30, 240);
+    rect(100, -loopCount + SCREEN_HEIGHT * 23 / 24, 100, 10);
+    fill(240, 30, 30);
+    if (panzer.boostAvailable > 0) {
+        rect(200 - (100 - panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - panzer.boostAvailable, 10);
+        text("BOOST:  " + panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+    }
+    else {
+        rect(
+            200 - (floor(panzer.rechargeTime / 3)), 
+            -loopCount + SCREEN_HEIGHT * 23 / 24, 
+            floor(panzer.rechargeTime / 3), 
+            10);
+        text("BOOST:  " + (100 - floor(panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+    } 
+
+    // Display character's health as a part of the H.U.D.
+    fill(240, 30, 30);
+    textSize(14);
+    text("LIFE:  " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+    text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
+    noStroke();
+}
 
 /*
  * Overload Processing's callback function 
@@ -2750,9 +2796,10 @@ var draw = function() {
             // Loop counter to keep track of the translation iteration we are currently on
             loopCount++;
             if (loopCount > 0) { 
-                loopCount = -3400;
+                loopCount = -MAP_OFFSET;
                 panzer.y -= loopCount;
-                loopIterations++;
+                //loopIterations++;
+                changeGameState(GameState_e.LEVEL_TWO);
             }
             var tem = loopCount - 400
             if (panzer.y > (abs(tem)+121)) {
@@ -2764,42 +2811,14 @@ var draw = function() {
             }
             
             // Advance to level 2 once level 1 is complete
-            if (loopIterations === 2) {  
-                loopCount = -3400;
-                loopIterations = 0;
-                changeGameState(GameState_e.LEVEL_TWO);
-            }
-
-            // Life bar 
-            stroke();
-            fill(50, 230, 50);
-            rect(80, -loopCount + SCREEN_HEIGHT * 1 / 30, 100, 10);
-            fill(240, 30, 30);
-            rect(180 - (100 - panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - panzer.health, 10);
-
-            // Boost bar
-            fill(30, 30, 240);
-            rect(100, -loopCount + SCREEN_HEIGHT * 23 / 24, 100, 10);
-            fill(240, 30, 30);
-            if (panzer.boostAvailable > 0) {
-                rect(200 - (100 - panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - panzer.boostAvailable, 10);
-                text("BOOST:  " + panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
-            }
-            else {
-                rect(
-                    200 - (floor(panzer.rechargeTime / 3)), 
-                    -loopCount + SCREEN_HEIGHT * 23 / 24, 
-                    floor(panzer.rechargeTime / 3), 
-                    10);
-                text("BOOST:  " + (100 - floor(panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
-            } 
-
-            // Display character's health as a part of the H.U.D.
-            fill(240, 30, 30);
-            textSize(14);
-            text("LIFE:  " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
-            text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
-            noStroke();
+            // if (loopIterations === 1) {  
+            //     //loopCount = -MAP_OFFSET;
+            //     loopIterations = 0;
+                
+            // }
+            
+            // Draw the heads up display
+            drawHUD();
             
             // 1st wave of enemies contained in the first tilemap defined in 
             // the game object
@@ -2875,9 +2894,10 @@ var draw = function() {
             // Loop counter to keep track of the translation iteration we are currently on
             loopCount++;
             if (loopCount > 0) { 
-                loopCount = -3400;
+                loopCount = -MAP_HEIGHT;
                 panzer.y -= loopCount;
-                loopIterations++;
+                //loopIterations++;
+                changeGameState(GameState_e.LEVEL_THREE);
             }
 
             var tem = loopCount - 400
@@ -2890,43 +2910,14 @@ var draw = function() {
             }
             
             // Advance to level 3 once level 2 is complete
-            if (loopIterations === 2) {  
-                loopCount = -3400;
-                loopIterations = 0;
-                changeGameState(GameState_e.LEVEL_THREE);
-            }
-
-            // Life bar 
-            stroke();
-            fill(50, 230, 50);
-            rect(80, -loopCount + SCREEN_HEIGHT * 1 / 30, 100, 10);
-            fill(240, 30, 30);
-            rect(180 - (100 - panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - panzer.health, 10);
-
-            // Boost bar
-            fill(30, 30, 240);
-            rect(100, -loopCount + SCREEN_HEIGHT * 23 / 24, 100, 10);
-            fill(240, 30, 30);
-            if (panzer.boostAvailable > 0) {
-                rect(200 - (100 - panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - panzer.boostAvailable, 10);
-                text("BOOST:  " + panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
-            }
-            else {
-                rect(
-                    200 - (floor(panzer.rechargeTime / 3)), 
-                    -loopCount + SCREEN_HEIGHT * 23 / 24, 
-                    floor(panzer.rechargeTime / 3), 
-                    10);
-                text("BOOST:  " + (100 - floor(panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
-            } 
-
-            // Display character's health as a part of the H.U.D.
-            //stroke()
-            fill(240, 30, 30);
-            textSize(14);
-            text("LIFE:  " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
-            text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
-            noStroke();
+            // if (loopIterations === 2) {  
+            //     // loopCount = -MAP_HEIGHT;
+            //     // loopIterations = 0;
+                
+            // }
+            
+            // Draw the heads up display
+            drawHUD();
             
             // 1st wave of enemies contained in the first tilemap defined in 
             // the game object
@@ -2996,9 +2987,10 @@ var draw = function() {
             // Loop counter to keep track of the translation iteration we are currently on
             loopCount++;
             if (loopCount > 0) { 
-                loopCount = -3400;
+                loopCount = -MAP_HEIGHT;
                 panzer.y -= loopCount;
-                loopIterations++;
+                //loopIterations++;
+                changeGameState(GameState_e.FINAL_STAGE);
             }
 
             var tem = loopCount - 400
@@ -3011,42 +3003,14 @@ var draw = function() {
             }
             
             // Advance to winning transition once level 3 is complete
-            if (loopIterations === 2) {  
-                loopCount = -3400;
-                loopIterations = 0;
-                changeGameState(GameState_e.FINAL_STAGE);
-            }
-
-            // Life bar 
-            stroke();
-            fill(50, 230, 50);
-            rect(80, -loopCount + SCREEN_HEIGHT * 1 / 30, 100, 10);
-            fill(240, 30, 30);
-            rect(180 - (100 - panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - panzer.health, 10);
-
-            // Boost bar
-            fill(30, 30, 240);
-            rect(100, -loopCount + SCREEN_HEIGHT * 23 / 24, 100, 10);
-            fill(240, 30, 30);
-            if (panzer.boostAvailable > 0) {
-                rect(200 - (100 - panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - panzer.boostAvailable, 10);
-                text("BOOST:  " + panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
-            }
-            else {
-                rect(
-                    200 - (floor(panzer.rechargeTime / 3)), 
-                    -loopCount + SCREEN_HEIGHT * 23 / 24, 
-                    floor(panzer.rechargeTime / 3), 
-                    10);
-                text("BOOST:  " + (100 - floor(panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
-            } 
-
-            // Display character's health as a part of the H.U.D.
-            fill(240, 30, 30);
-            textSize(14);
-            text("LIFE:  " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
-            text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
-            noStroke();
+            // if (loopIterations === 2) {  
+            //     // loopCount = -MAP_HEIGHT;
+            //     // loopIterations = 0;
+                
+            // }
+            
+            // Draw the heads up display
+            drawHUD();
             
             // 1st wave of enemies contained in the first tilemap defined in 
             // the game object
@@ -3111,7 +3075,7 @@ var draw = function() {
         case GameState_e.FINAL_STAGE:
 
             pushMatrix();
-            translate(0, -3400);
+            translate(0, -MAP_HEIGHT);
 
             panzer.fireRate = 5;
 
@@ -3119,10 +3083,10 @@ var draw = function() {
 
             loopCount++;
             if (loopCount > 0) { 
-               loopCount = -3400;
+               loopCount = -MAP_HEIGHT;
             }
 
-            var tem = -3800;
+            var tem = -(MAP_OFFSET + SCREEN_HEIGHT / 2);
             if (panzer.y > (abs(tem)+121)) {
                 panzer.y = abs(tem)+120
             }
@@ -3171,36 +3135,8 @@ var draw = function() {
                 panzer.miniGunEnabled = true;
             }
 
-            // Life bar 
-            stroke();
-            fill(50, 230, 50);
-            rect(80, 3400 + SCREEN_HEIGHT * 1 / 30, 100, 10);
-            fill(240, 30, 30);
-            rect(180 - (100 - panzer.health), 3400 + SCREEN_HEIGHT * 1 / 30, 100 - panzer.health, 10);
-
-            // Boost bar
-            fill(30, 30, 240);
-            rect(100, 3400 + SCREEN_HEIGHT * 23 / 24, 100, 10);
-            fill(240, 30, 30);
-            if (panzer.boostAvailable > 0) {
-                rect(200 - (100 - panzer.boostAvailable), 3400 + SCREEN_HEIGHT * 23 / 24, 100 - panzer.boostAvailable, 10);
-                text("BOOST:  " + panzer.boostAvailable, 10,  3400 + SCREEN_HEIGHT * 39 / 40);
-            }
-            else {
-                rect(
-                    200 - (floor(panzer.rechargeTime / 3)), 
-                    3400 + SCREEN_HEIGHT * 23 / 24, 
-                    floor(panzer.rechargeTime / 3), 
-                    10);
-                text("BOOST:  " + (100 - floor(panzer.rechargeTime / 3)), 10,  3400 + SCREEN_HEIGHT * 39 / 40);
-            } 
-
-            // Display character's health as a part of the H.U.D.
-            fill(240, 30, 30);
-            textSize(14);
-            text("LIFE:  " + panzer.health, 10, 3400 + SCREEN_HEIGHT * 1 / 20);
-            text("SCORE:  " + GAME_INST.score * 10, 700, 3400 + SCREEN_HEIGHT * 1 / 20);
-            noStroke();
+            // Draw the heads up display
+            drawHUD();
 
             popMatrix();
             break;
@@ -3262,7 +3198,7 @@ var draw = function() {
          */
         case GameState_e.CREDITS:  // Placeholder for end credits animation in a future version/release of the game
             // reinitialize all game variables for the next iteration of game play
-            loopCount = -3400;
+            loopCount = -MAP_HEIGHT;
             panzer = createTank(
                 SCREEN_WIDTH / 2 - TILE_WIDTH / 2, 
                 -loopCount + SCREEN_HEIGHT * 2 / 3, 
