@@ -62,7 +62,7 @@ var ENABLE_DEBUG_MODE = false;
 var sketchProc=function(processingInstance){ with (processingInstance) {
 size(SCREEN_WIDTH, SCREEN_HEIGHT); 
 
-FPS = 60
+FPS = 60;
 frameRate(FPS);
 
 // Variable describing the total map pixel lengths
@@ -144,6 +144,9 @@ var BOSS_WIDTH = TILE_WIDTH * 2;
         '../assets/enemies/boss_base.png',
         '../assets/enemies/boss_front.png',
         '../assets/main_character/tank_body.png',
+        '../assets/main_character/player_idle1.png',
+        '../assets/main_character/player_idle2.png',
+        '../assets/main_character/player_idle3.png',
         '../assets/main_character/tank_gun.png',
         '../assets/sound_files/tank.wav',
     crisp='true';
@@ -233,6 +236,9 @@ var GameScreens_t = {
 var Assets_t = { 
     // Main character(s)
     PANZER:     loadImage('../assets/main_character/tank_body.png'),
+    PANZER1:    loadImage('../assets/main_character/player_idle1.png'),
+    PANZER2:    loadImage('../assets/main_character/player_idle2.png'),
+    PANZER3:    loadImage('../assets/main_character/player_idle3.png'),
     PANZER_GUN: loadImage('../assets/main_character/tank_gun.png'),
 
     // Enemy character(s)
@@ -281,6 +287,17 @@ var HelpSpeedOptions_e = {
     MEDIUM: 60,
     SLOW: 90,
 };
+
+// Maps (to avoid unnecessary if statements and repetition)
+// var PanzerMap = new Map(
+//     [[0, Assets_t.PANZER1],
+//     [1, Assets_t.PANZER2],
+//     [2, Assets_t.PANZER3]]);
+var PanzerMap = new Map();
+PanzerMap.set(0, Assets_t.PANZER1);
+PanzerMap.set(1, Assets_t.PANZER2);
+PanzerMap.set(2, Assets_t.PANZER3);
+
 
 // -------------- Define key press state structure and related functions ----------------
 var keyState = {
@@ -818,8 +835,18 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     if (frameCount % 5 === 0) { // TODO: Better implementation of the autofire delayed needed
         this.autoFireToggled = false;
     }
+    
+    // Animated tank track movement for the main character
+    if (-frameCount % 15 < 5) { // 0 -> 3
+        image(Assets_t.PANZER1, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+    }
+    else if (-frameCount % 15 >= 5 && frameCount % 15 < 10) { // 4 -> 7
+        image(Assets_t.PANZER2, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+    }
+    else if (-frameCount % 15 >= 10 && frameCount % 15 < 15) { // 8 -> 11
+        image(Assets_t.PANZER3, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+    }
 
-    image(Assets_t.PANZER, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     for (var i = 0; i < this.bullets.length; i++) {
         this.bullets[i].draw(0);
 
@@ -917,7 +944,19 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
             self.rechargeTime = 300;
         }
     }
-    image(Assets_t.PANZER, this.x, this.y, TILE_WIDTH, TILE_HEIGHT);
+
+    // Animated tank track movement for the main character
+    if (-frameCount % 15 < 5) { // 0 -> 3
+        image(Assets_t.PANZER1, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+    }
+    else if (-frameCount % 15 >= 5 && frameCount % 15 < 10) { // 4 -> 7
+        image(Assets_t.PANZER2, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+    }
+    else if (-frameCount % 15 >= 10 && frameCount % 15 < 15) { // 8 -> 11
+        image(Assets_t.PANZER3, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+    }
+
+    //image(Assets_t.PANZER, this.x, this.y, TILE_WIDTH, TILE_HEIGHT);
 
     // Aiming (rotation/translation) of the tank gun
     if (!DISABLE.LEFT) {
@@ -2831,6 +2870,7 @@ var draw = function() {
             }
 
             // Main functionality of the panzer tank
+            println(loopCount);
             panzer.draw(loopCount, GameState_e.LEVEL_ONE);
             
             // Lose Condition = Health is fully diminished and (tank is dead)
