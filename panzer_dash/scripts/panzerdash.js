@@ -782,6 +782,8 @@ var tankObj = function(x, y, s) {
 
 tankObj.prototype.draw = function(frameCount, currentLevel) {
     var self = this;
+    
+
 
     if (DISABLE.W === false) { // } && self.y > 0) {
         self.y -= self.speed;
@@ -803,6 +805,7 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
         }
     }
     else {
+        self.y -= 1;
         self.speed = 3;
         if (self.rechargeNeeded) {
             self.rechargeTime -= 1;
@@ -934,6 +937,7 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
         }
     }
     else {
+        self.y -= 1;
         self.speed = 3;
         if (self.rechargeNeeded) {
             self.rechargeTime--;
@@ -2849,13 +2853,6 @@ var draw = function() {
                 panzer.y = abs(tem)-400
             }
             
-            // Advance to level 2 once level 1 is complete
-            // if (loopIterations === 1) {  
-            //     //loopCount = -MAP_OFFSET;
-            //     loopIterations = 0;
-                
-            // }
-            
             // Draw the heads up display
             drawHUD();
             
@@ -2870,7 +2867,6 @@ var draw = function() {
             }
 
             // Main functionality of the panzer tank
-            println(loopCount);
             panzer.draw(loopCount, GameState_e.LEVEL_ONE);
             
             // Lose Condition = Health is fully diminished and (tank is dead)
