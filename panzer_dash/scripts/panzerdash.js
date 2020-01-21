@@ -148,6 +148,11 @@ var BOSS_WIDTH = TILE_WIDTH * 2;
         '../assets/main_character/player_idle2.png',
         '../assets/main_character/player_idle3.png',
         '../assets/main_character/tank_gun.png',
+        '../assets/main_character/tank_gun2.png',
+        '../assets/main_character/tank_gun_rockets.png',
+        '../assets/main_character/tank_gun_dual_miniguns.png',
+        '../assets/HUD/hud.png',
+        '../assets/HUD/needle.png'
         '../assets/sound_files/tank.wav',
     crisp='true';
 */
@@ -257,6 +262,10 @@ var Assets_t = {
     SHOT_GUN_PICKUP: loadImage('../assets/pickups/pickup_shotgun.png'),
     MINI_GUN_PICKUP: loadImage('../assets/pickups/pickup_rapidfire.png'),
     HEALTH_PICKUP:   loadImage('../assets/pickups/pickup_health.png'),
+
+    // Heads up display
+    HUD:        loadImage('../assets/HUD/hud.png'),
+    HUD_NEEDLE: loadImage('../assets/HUD/needle.png'),
 };
 
 var TankOptions_e = {
@@ -772,7 +781,7 @@ var tankObj = function(x, y, s) {
     this.fireRate = 8;
     this.autoFireEnabled = false;
     this.health = 100;
-    this.boostAvailable = 100;
+    this.boostAvailable = 400;
     this.rechargeNeeded = false;
     this.rechargeTime = 300;
     this.objectType = ObjectType_e.TANK;
@@ -783,13 +792,13 @@ var tankObj = function(x, y, s) {
 tankObj.prototype.draw = function(frameCount, currentLevel) {
     var self = this;
     
-
-
     if (DISABLE.W === false) { // } && self.y > 0) {
         self.y -= self.speed;
+        // FPS+=2;
+        // frameRate(FPS);
     }
     if (DISABLE.S === false) { // && self.y < SCREEN_HEIGHT - TS) {
-        self.y += self.speed;  
+        self.y += self.speed;
     }
     if (DISABLE.D === false && self.x < SCREEN_WIDTH - TILE_WIDTH) {
         self.x += self.speed;
@@ -797,24 +806,30 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     if (DISABLE.A === false && self.x > 0) {
         self.x -= self.speed;
     }
-    if (DISABLE.SPACE === false && self.boostAvailable > 0 && !self.rechargeNeeded) {
+    // self.y -= 1;
+    // FPS-=1;
+    // frameRate(FPS);
+    if (DISABLE.SPACE === false && self.boostAvailable > 3) { // && !self.rechargeNeeded) {
         self.speed = 5;
-        self.boostAvailable--;  // Decrement the available boost left
+        self.boostAvailable -= 4;  // Decrement the available boost left
         if (self.boostAvailable === 0) {
             self.rechargeNeeded = true;
         }
     }
     else {
-        self.y -= 1;
+        //self.y -= 1;
         self.speed = 3;
-        if (self.rechargeNeeded) {
-            self.rechargeTime -= 1;
+        if (self.boostAvailable < 400) {
+            self.boostAvailable++;
         }
-        if (self.rechargeTime === 0) {  // Force the recharge to take twice as long as the player can spend the boost
-            self.rechargeNeeded = false;
-            self.boostAvailable = 100;
-            self.rechargeTime = 300;
-        }
+        // if (self.rechargeNeeded) {
+        //     self.rechargeTime -= 1;
+        // }
+        // if (self.rechargeTime === 0) {  // Force the recharge to take twice as long as the player can spend the boost
+        //     self.rechargeNeeded = false;
+        //     self.boostAvailable = 100;
+        //     self.rechargeTime = 300;
+        // }
     }
 
     if (!DISABLE.DOWN) {
@@ -929,24 +944,29 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
     if (DISABLE.A === false && self.x > 0) {
         self.x -= self.speed;
     }
-    if (DISABLE.SPACE === false && self.boostAvailable > 0 && !self.rechargeNeeded) {
+    self.y -= 1;
+    if (DISABLE.SPACE === false && self.boostAvailable > 0 && self.boostAvailable > 3) {
         self.speed = 5;
-        self.boostAvailable--;  // Decrement the available boost left
-        if (self.boostAvailable === 0) {
-            self.rechargeNeeded = true;
-        }
+        self.boostAvailable -= 4;  // Decrement the available boost left
+        // if (self.boostAvailable === 0) {
+        //     self.rechargeNeeded = true;
+        // }
     }
     else {
-        self.y -= 1;
+        // self.y -= 1;
         self.speed = 3;
-        if (self.rechargeNeeded) {
-            self.rechargeTime--;
+        if (self.boostAvailable < 400) {
+            self.boostAvailable++;
         }
-        if (self.rechargeTime === 0) {  // Force the recharge to take twice as long as the player can spend the boost
-            self.rechargeNeeded = false;
-            self.boostAvailable = 100;
-            self.rechargeTime = 300;
-        }
+        
+        // if (self.rechargeNeeded) {
+        //     self.rechargeTime--;
+        // }
+        // if (self.rechargeTime === 0) {  // Force the recharge to take twice as long as the player can spend the boost
+        //     self.rechargeNeeded = false;
+        //     self.boostAvailable = 100;
+        //     self.rechargeTime = 300;
+        // }
     }
 
     // Animated tank track movement for the main character
@@ -969,6 +989,8 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
     if (!DISABLE.RIGHT) {
         this.currGunAngle += this.aimSpeed;
     }
+    
+    // Rotate the tank gun
     pushMatrix();
     translate(this.x + TILE_WIDTH / 2, this.y + TILE_HEIGHT / 2);  // Move to the center of rotation
     rotate(radians(this.currGunAngle));
@@ -1561,7 +1583,7 @@ bossEnemy.prototype.draw = function() {
         rect(this.position.x, MAP_OFFSET + this.position.y, 200, 10);
         fill(240, 30, 30);
         rect(this.position.x - this.health / 2, MAP_OFFSET + this.position.y, 200 - panzer.health / 2, 10);
-        noStroke()
+        noStroke();
 
         if (this.rechargeCount <= 0) {
             this.rechargeNeeded = true;
@@ -2753,7 +2775,7 @@ var animationCount = 0;
 var fontSize = 48;
 var loopIterations = 0;
 
-var drawHUD = function() {
+var drawHUD_old = function() {
     // Life bar 
     stroke();
     fill(50, 230, 50);
@@ -2785,6 +2807,26 @@ var drawHUD = function() {
     text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
     noStroke();
 }
+
+var drawHUD = function() {
+    noStroke();
+    fill(50, 230, 50);
+    rect(0, -loopCount + SCREEN_HEIGHT * 1 / 40, 13, 210);
+    fill(240, 30, 30);
+    // 180 - (100 - panzer.health)
+    rect(0, -loopCount + SCREEN_HEIGHT * 1 / 40, 13, 210 - panzer.health * 2.1);
+
+    image(Assets_t.HUD, 0, -loopCount, SCREEN_WIDTH, SCREEN_HEIGHT);
+    
+    // Rotate the tank gun
+    pushMatrix();
+    translate(52, -loopCount + 40);  // Move to the center of rotation
+    println(panzer.boostAvailable);
+    rotate(radians((-200 + panzer.boostAvailable) / 2));
+    translate(-50, -(-loopCount + 35));  // Move back
+    image(Assets_t.HUD_NEEDLE, 45, -loopCount + 4, SCREEN_WIDTH / 70, SCREEN_HEIGHT / 18);
+    popMatrix();
+};
 
 /*
  * Overload Processing's callback function 
@@ -2819,7 +2861,7 @@ var draw = function() {
          * a short load transition will be added to pad the loading of each 
          * level)
          */
-        case GameState_e.ANIMATED_LOAD_TRANSITION: 
+        case GameState_e.ANIMATED_LOAD_TRANSITION: // TODO:
             changeGameState(GameState_e.LEVEL_ONE)    // change back to one
             break;
 
@@ -2829,7 +2871,7 @@ var draw = function() {
          * -------------------
          */
         case GameState_e.LEVEL_ONE:
-            //changeGameState(GameState_e.FINAL_STAGE);
+            //changeGameState(GameState_e.LEVEL_TWO);
 
             pushMatrix();
             translate(0, loopCount);
