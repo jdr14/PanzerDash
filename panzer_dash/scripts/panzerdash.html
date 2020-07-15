@@ -32,16 +32,21 @@ and Save as NameOfProgram.html -->
 
  <!-- run all the JavaScript stuff -->
  <!-- Include the processing.js library -->
- <script src="processing-1.4.8.min.js"></script> 
+ <script src="processing-1.4.8.min.js"></script>
+ <!-- <script src="p5/p5.js"></script>
+ <script src="p5/addons/p5.sound.js"></script> -->
  
  <!-- The name of the Program Source Code goes here -->
  <script src="panzerdash.js"></script> 
- 
+
  <script type="application/javascript">
+
   //get the canvas that Processing-js will use
   var canvas = document.getElementById("mycanvas"); 
+
   //pass the function sketchProc (defined in myCode.js) to Processing's constructor.
   var processingInstance = new Processing(canvas, sketchProc); 
+  
  </script>
 
 </html>

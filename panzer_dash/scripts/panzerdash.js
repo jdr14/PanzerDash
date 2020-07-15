@@ -266,6 +266,9 @@ var Assets_t = {
     // Heads up display
     HUD:        loadImage('../assets/HUD/hud.png'),
     HUD_NEEDLE: loadImage('../assets/HUD/needle.png'),
+
+    // Wave soundtracks
+    //WAVE_1:     loadSound('assets/sound_files/wave1.mp3'),
 };
 
 var TankOptions_e = {
@@ -296,6 +299,8 @@ var HelpSpeedOptions_e = {
     MEDIUM: 60,
     SLOW: 90,
 };
+
+//var audioContext = new AudioContext();
 
 // Maps (to avoid unnecessary if statements and repetition)
 // var PanzerMap = new Map(
@@ -472,9 +477,9 @@ var bulletObj = function(x, y, s) {
 };
 
 bulletObj.prototype.draw = function(type) {
-    //if (this.travelDistance >= this.range) {
-    //    this.outOfRange = true;
-    //} 
+    if (this.travelDistance >= this.range) {
+        this.outOfRange = true;
+    } 
     if(this.hit === 0 && !this.outOfRange) {
         noStroke();
         if (type === 1) // type 1 signifies enemy bullets
@@ -498,15 +503,15 @@ bulletObj.prototype.draw = function(type) {
 
         this.position.add(this.speed);
     }
-    //this.travelDistance += 1;
+    this.travelDistance += 1;
 };
 
 bulletObj.prototype.hitTank = function() {
     var temp = (panzer.y + loopCount - SCREEN_HEIGHT * 1 / 20);
     if (dist(panzer.x, panzer.y, this.position.x, this.position.y) > 2) {
         fill(122, 120, 113);
-        rect(this.position.x - (this.w*2) / 2, this.position.y, (this.w*2), (2*this.l));
-        ellipse(this.position.x, this.position.y, (2*this.w), (2*this.w));
+        rect(this.position.x - (this.w * 2) / 2, this.position.y, (this.w * 2), (2 * this.l));
+        ellipse(this.position.x, this.position.y, (2 * this.w), (2 * this.w));
         this.speed.set(panzer.x - this.position.x, 3);
         this.speed.normalize();
         this.position.add(this.speed);
@@ -524,7 +529,7 @@ bulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
         var within_y = this.position.y > round(GAME_INST.finalBoss.base_y - GAME_INST.finalBoss.base_height)
             && this.position.y < round(GAME_INST.finalBoss.base_y + GAME_INST.finalBoss.base_height);
 
-        if (within_x && within_y && !GAME_INST.finalBoss.defeated && this.hit !== 1) {  // Check that object has not already been collected
+        if (within_x && within_y && !GAME_INST.finalBoss.defeated && this.hit !== 1 && !this.outOfRange) {  // Check that object has not already been collected
             GAME_INST.finalBoss.health -= this.damage;
             if (GAME_INST.finalBoss.health < 1) {
                 GAME_INST.finalBoss.defeated = true;
@@ -2821,12 +2826,14 @@ var drawHUD = function() {
     // Rotate the tank gun
     pushMatrix();
     translate(52, -loopCount + 40);  // Move to the center of rotation
-    println(panzer.boostAvailable);
+    //println(panzer.boostAvailable);
     rotate(radians((-200 + panzer.boostAvailable) / 2));
     translate(-50, -(-loopCount + 35));  // Move back
     image(Assets_t.HUD_NEEDLE, 45, -loopCount + 4, SCREEN_WIDTH / 70, SCREEN_HEIGHT / 18);
     popMatrix();
 };
+
+var audio = new Audio('../assets/sound_files/wave1.mp3');
 
 /*
  * Overload Processing's callback function 
@@ -2844,6 +2851,9 @@ var draw = function() {
         case GameState_e.START_SCREEN:
             drawStartScreen();
             if (MouseState.PRESSED && mouseX < 303 && mouseX > 0 && mouseY < 164 && mouseY > 64) {
+                //Assets_t.WAVE_1.play()
+                //userStartAudio();
+                //touchStarted();
                 changeGameState(GameState_e.ANIMATED_LOAD_TRANSITION);
                 MouseState.PRESSED = 0;  // Force a click release
             }
@@ -2871,6 +2881,7 @@ var draw = function() {
          * -------------------
          */
         case GameState_e.LEVEL_ONE:
+            audio.play();
             //changeGameState(GameState_e.LEVEL_TWO);
 
             pushMatrix();
