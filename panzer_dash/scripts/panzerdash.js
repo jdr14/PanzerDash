@@ -62,7 +62,7 @@ var ENABLE_DEBUG_MODE = false;
 var sketchProc=function(processingInstance){ with (processingInstance) {
 size(SCREEN_WIDTH, SCREEN_HEIGHT); 
 
-FPS = 60;
+FPS = 70;
 frameRate(FPS);
 
 // Variable describing the total map pixel lengths
@@ -267,9 +267,14 @@ var Assets_t = {
     HUD:        loadImage('../assets/HUD/hud.png'),
     HUD_NEEDLE: loadImage('../assets/HUD/needle.png'),
 
-    // Wave soundtracks
-    //WAVE_1:     loadSound('assets/sound_files/wave1.mp3'),
 };
+
+var wave_1_sound = new Audio('../assets/sound_files/wave1.mp3');
+var explosion_1_sound = new Audio('assets/sound_files/SFX_enemy_explode_1.wav');
+var explosion_2_sound = new Audio('assets/sound_files/SFX_enemy_explode_2.wav');
+var enemy_fire_sound = new Audio('assets/sound_files/SFX_enemy_fire.wav');
+var tank_fire_sound = new Audio('assets/sound_files/SFX_tank_fire.wav');
+var health_pickup_sound = new Audio('assets/sound_files/SFX_player_health_pickup.wav');
 
 var TankOptions_e = {
     BASIC: 0,
@@ -506,17 +511,17 @@ bulletObj.prototype.draw = function(type) {
     this.travelDistance += 1;
 };
 
-bulletObj.prototype.hitTank = function() {
-    var temp = (panzer.y + loopCount - SCREEN_HEIGHT * 1 / 20);
-    if (dist(panzer.x, panzer.y, this.position.x, this.position.y) > 2) {
-        fill(122, 120, 113);
-        rect(this.position.x - (this.w * 2) / 2, this.position.y, (this.w * 2), (2 * this.l));
-        ellipse(this.position.x, this.position.y, (2 * this.w), (2 * this.w));
-        this.speed.set(panzer.x - this.position.x, 3);
-        this.speed.normalize();
-        this.position.add(this.speed);
-    }
-}
+// bulletObj.prototype.hitTank = function() {
+//     var temp = (panzer.y + loopCount - SCREEN_HEIGHT * 1 / 20);
+//     if (dist(panzer.x, panzer.y, this.position.x, this.position.y) > 2) {
+//         fill(122, 120, 113);
+//         rect(this.position.x - (this.w * 2) / 2, this.position.y, (this.w * 2), (2 * this.l));
+//         ellipse(this.position.x, this.position.y, (2 * this.w), (2 * this.w));
+//         this.speed.set(panzer.x - this.position.x, 3);
+//         this.speed.normalize();
+//         this.position.add(this.speed);
+//     }
+// }
 
 bulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
     if (level === GameState_e.FINAL_STAGE) {
@@ -689,11 +694,11 @@ shotBulletObj.prototype.TankCollsionCheck = function() {
 }
 
 bulletObj.prototype.TankCollsionCheck = function() {
-    var within_x = round(this.position.x) > panzer.x && round(this.position.x) < panzer.x + TILE_WIDTH;
-    var within_y = round(this.position.y) > (panzer.y) && round(this.position.y) < panzer.y + TILE_HEIGHT;
+    var within_x = round(this.position.x) > GAME_INST.panzer.x && round(this.position.x) < GAME_INST.panzer.x + TILE_WIDTH;
+    var within_y = round(this.position.y) > (GAME_INST.panzer.y) && round(this.position.y) < GAME_INST.panzer.y + TILE_HEIGHT;
 
     if (within_x && within_y && (this.hit !== 1)) {
-        panzer.health -= this.damage;
+        GAME_INST.panzer.health -= this.damage;
         this.hit = 1;
         within_x = false;
         return;
@@ -737,7 +742,6 @@ tankShellObj.prototype.draw = function(gunAngle) {
         // Add velocity to the shell
         this.position.add(this.speed); 
     }
-
 };
 
 tankShellObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
@@ -811,30 +815,20 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     if (DISABLE.A === false && self.x > 0) {
         self.x -= self.speed;
     }
-    // self.y -= 1;
-    // FPS-=1;
-    // frameRate(FPS);
-    if (DISABLE.SPACE === false && self.boostAvailable > 3) { // && !self.rechargeNeeded) {
+    
+    // Boost logic
+    if (DISABLE.SPACE === false && self.boostAvailable > 3) {  // Boost activated
         self.speed = 5;
         self.boostAvailable -= 4;  // Decrement the available boost left
         if (self.boostAvailable === 0) {
-            self.rechargeNeeded = true;
+            self.rechargeNeeded = true;  // Boost needs to recharge after an amount of time
         }
     }
-    else {
-        //self.y -= 1;
+    else {  // Boost not activated
         self.speed = 3;
         if (self.boostAvailable < 400) {
             self.boostAvailable++;
         }
-        // if (self.rechargeNeeded) {
-        //     self.rechargeTime -= 1;
-        // }
-        // if (self.rechargeTime === 0) {  // Force the recharge to take twice as long as the player can spend the boost
-        //     self.rechargeNeeded = false;
-        //     self.boostAvailable = 100;
-        //     self.rechargeTime = 300;
-        // }
     }
 
     if (!DISABLE.DOWN) {
@@ -844,6 +838,7 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     if (!DISABLE.UP || this.autoFireEnabled) {  // Fire the gun
         if (frameCount % this.fireRate === 0) {
             if (!this.shotGunEnabled) {
+                //tank_fire_sound.play();
                 this.bullets.push(new bulletObj(this.x + TILE_WIDTH / 2, this.y + TILE_HEIGHT / 6, this.bulletSpeed));
             }
             else {  // Shotgun enabled
@@ -950,42 +945,27 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
         self.x -= self.speed;
     }
     self.y -= 1;
-    if (DISABLE.SPACE === false && self.boostAvailable > 0 && self.boostAvailable > 3) {
+    if (DISABLE.SPACE === false && self.boostAvailable > 0 && self.boostAvailable > 3) {  // Boost activated
         self.speed = 5;
         self.boostAvailable -= 4;  // Decrement the available boost left
-        // if (self.boostAvailable === 0) {
-        //     self.rechargeNeeded = true;
-        // }
     }
-    else {
-        // self.y -= 1;
+    else {  // Boost not being used
         self.speed = 3;
         if (self.boostAvailable < 400) {
             self.boostAvailable++;
         }
-        
-        // if (self.rechargeNeeded) {
-        //     self.rechargeTime--;
-        // }
-        // if (self.rechargeTime === 0) {  // Force the recharge to take twice as long as the player can spend the boost
-        //     self.rechargeNeeded = false;
-        //     self.boostAvailable = 100;
-        //     self.rechargeTime = 300;
-        // }
     }
 
     // Animated tank track movement for the main character
     if (-frameCount % 15 < 5) { // 0 -> 3
         image(Assets_t.PANZER1, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     }
-    else if (-frameCount % 15 >= 5 && frameCount % 15 < 10) { // 4 -> 7
+    else if (-frameCount % 15 >= 5 && -frameCount % 15 < 10 && frameCount % 15 < 10) { // 4 -> 7
         image(Assets_t.PANZER2, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     }
     else if (-frameCount % 15 >= 10 && frameCount % 15 < 15) { // 8 -> 11
         image(Assets_t.PANZER3, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     }
-
-    //image(Assets_t.PANZER, this.x, this.y, TILE_WIDTH, TILE_HEIGHT);
 
     // Aiming (rotation/translation) of the tank gun
     if (!DISABLE.LEFT) {
@@ -1006,11 +986,11 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
     if (!DISABLE.DOWN) {
         this.autoFireEnabled = !this.autoFireEnabled;  // toggle the auto fire enabled option
         this.autoFireToggled = true;
-        //this.laserOn = true;
     }
     if (!DISABLE.UP || this.autoFireEnabled) {  // Fire the gun
         if (frameCount % this.fireRate === 0) {
             if (!this.shotGunEnabled) {
+
                 this.bullets.push(new bulletObj(this.x + TILE_WIDTH / 2, this.y - TILE_WIDTH / 6, this.bulletSpeed));
             }
             else {  // Shotgun enabled
@@ -1029,7 +1009,6 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
                 this.tankShellSpeed, 
                 radians(this.currGunAngle + 90)));
         }
-        //this.laserOn = true;
         this.laser = new laserObj(this.x + TILE_WIDTH / 2, this.y);
     }
     
@@ -1095,20 +1074,6 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
             this.tankShells.splice(0, 1);
         }
     }
-    
-    // laser gun option
-    if (!this.laserOn || this.prevFrameCount === 0) {
-        this.prevFrameCount = frameCount;
-    }
-    if (frameCount - this.prevFrameCount < 16) {
-        this.laser.draw( (frameCount - this.prevFrameCount) / 2);
-    }
-    else {
-        this.laser.draw(8);
-    }
-    if (DISABLE.UP && !this.autoFireEnabled) {  // Ensure laser is properly turned off
-        this.laserOn = false;
-    }
 };
 
 
@@ -1150,9 +1115,6 @@ var checkCollisionWithBoss = function(tank, enemyBoss) {
     var within_base_y = tank.x > round(enemyBoss.base_y) && tank.x < round(enemyBoss.base_y + enemyBoss.base_height);
     var within_front_x = tank.x > round(enemyBoss.front_x) && tank.x < round(enemyBoss.front_x + enemyBoss.front_width);
     var within_front_y = tank.y > round(enemyBoss.front_y) && tank.y < round(enemyBoss.front_y + enemyBoss.front_height);
-
-    //var within_x = tank.x > round(enemyBoss.position.x) - BOSS_WIDTH / 2 && tank.x < round(enemyBoss.position.x) + BOSS_WIDTH / 2;
-    //var within_y = tank.y > round(enemyBoss.position.y) - BOSS_HEIGHT * 3 / 2 && tank.y < round(enemyBoss.position.y) + BOSS_HEIGHT * 3 / 2;
         
     if ((within_base_x && within_base_y) || (within_front_x && within_front_y) && !enemyBoss.defeated) {  // Check that object has not already been collected
         // Inflict collateral damage
@@ -1358,8 +1320,14 @@ var enemy1Obj = function(x, y) {
     this.objectType = ObjectType_e.ENEMY;
 };
 
-enemy1Obj.prototype.draw = function() {
-    if (!this.defeated) {
+var spawnThreshold = -200;
+
+enemy1Obj.prototype.draw = function(panzer) {
+    if (!this.defeated && (this.position.y + loopCount) > spawnThreshold) {
+        var temp = loopCount + this.position.y;
+        //println("loop count = " + temp);
+
+        //println(" | enemy y = " + this.position.y);
         image(Assets_t.ENEMY1_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
         image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3/4, TILE_WIDTH, TILE_HEIGHT);
     }
@@ -1397,7 +1365,7 @@ var enemy2Obj = function(x, y, s) {
 };
 
 enemy2Obj.prototype.draw = function() {
-    if (!this.defeated) {
+    if (!this.defeated && (this.position.y + loopCount) > spawnThreshold) {
         image(Assets_t.ENEMY2_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
         image(Assets_t.ENEMY_TURRET, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
         image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3 / 4, TILE_WIDTH, TILE_HEIGHT);
@@ -1448,7 +1416,7 @@ var enemy3Obj = function(x, y, s) {
 };
 
 enemy3Obj.prototype.draw = function() {
-    if (!this.defeated) {
+    if (!this.defeated && (this.position.y + loopCount) > spawnThreshold) {
         image(Assets_t.ENEMY3_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
         image(Assets_t.ENEMY3_TURRET, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
 
@@ -1497,7 +1465,7 @@ var enemy4Obj = function(x, y, s) {
 };
 
 enemy4Obj.prototype.draw = function() {
-    if (!this.defeated) {
+    if (!this.defeated && (this.position.y + loopCount) > spawnThreshold) {
         image(Assets_t.ENEMY4_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
         image(Assets_t.ENEMY4_TURRET, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
         
@@ -1779,7 +1747,7 @@ var gameObj = function() {
     this.bossArray = [];
 
     this.currentLevel;
-    this.mainCharacter;
+    this.panzer;
 };
 
 /*
@@ -2159,6 +2127,68 @@ gameObj.prototype.initialize = function() {
     createRandomizedTileMap(this.tilemap5, MapDifficulty_e.HARD);
     //createRandomizedTileMap(this.tilemap6, MapDifficulty_e.HARD);
     
+    // TODO: Debug
+    /*this.tilemap = [
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "      b     ",
+        "            ",
+        "      a     ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "            ",
+        "      h     ",
+        "            ",
+        "            ",
+    ];*/
+
     // Initialize arrays based off of tilemap for 1st iteration of the 1st level
     for (var i = 0; i < this.tilemap.length; i++) {
         for (var j = 0; j < this.tilemap[i].length; j++) {
@@ -2407,7 +2437,7 @@ gameObj.prototype.drawLevelOne = function(y, loopIteration) {
     image(GameScreens_t.LEVEL_ONE, this.xCoor, this.yCoor);
     if (loopIteration === 0) {  // First iteration
         for (var i = 0; i < GAME_INST.enemyObjects.length; i++) { // enemy objects
-            GAME_INST.enemyObjects[i].draw();
+            GAME_INST.enemyObjects[i].draw(GAME_INST.panzer);  // TODO
             GAME_INST.enemyObjects[i].wander();
         }
         for (var i = 0; i < GAME_INST.gameObjects.length; i++) { // collectable objects
@@ -2418,7 +2448,7 @@ gameObj.prototype.drawLevelOne = function(y, loopIteration) {
     }
     else if (loopIteration === 1) {  // Second iteration
         for (var i = 0; i < GAME_INST.enemyObjects2.length; i++) { // enemy objects
-            GAME_INST.enemyObjects2[i].draw();
+            GAME_INST.enemyObjects2[i].draw(GAME_INST.panzer); // TODO
             GAME_INST.enemyObjects2[i].wander();
         }
         for (var i = 0; i < GAME_INST.gameObjects2.length; i++) { // collectable objects
@@ -2768,7 +2798,8 @@ GAME_INST.initialize();
 // and other necessary tasks
 var tankSpeed = 3;
 var loopCount = -MAP_OFFSET;
-var panzer = createTank(
+// var panzer = createTank(
+GAME_INST.panzer = createTank(
     SCREEN_WIDTH / 2 - TILE_WIDTH / 2, 
     -loopCount + SCREEN_HEIGHT * 2 / 3, 
     tankSpeed, 
@@ -2786,29 +2817,29 @@ var drawHUD_old = function() {
     fill(50, 230, 50);
     rect(80, -loopCount + SCREEN_HEIGHT * 1 / 30, 100, 10);
     fill(240, 30, 30);
-    rect(180 - (100 - panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - panzer.health, 10);
+    rect(180 - (100 - GAME_INST.panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - GAME_INST.panzer.health, 10);
 
     // Boost bar
     fill(30, 30, 240);
     rect(100, -loopCount + SCREEN_HEIGHT * 23 / 24, 100, 10);
     fill(240, 30, 30);
-    if (panzer.boostAvailable > 0) {
-        rect(200 - (100 - panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - panzer.boostAvailable, 10);
-        text("BOOST:  " + panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+    if (GAME_INST.panzer.boostAvailable > 0) {
+        rect(200 - (100 - GAME_INST.panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - GAME_INST.panzer.boostAvailable, 10);
+        text("BOOST:  " + GAME_INST.panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
     }
     else {
         rect(
-            200 - (floor(panzer.rechargeTime / 3)), 
+            200 - (floor(GAME_INST.panzer.rechargeTime / 3)), 
             -loopCount + SCREEN_HEIGHT * 23 / 24, 
-            floor(panzer.rechargeTime / 3), 
+            floor(GAME_INST.panzer.rechargeTime / 3), 
             10);
-        text("BOOST:  " + (100 - floor(panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+        text("BOOST:  " + (100 - floor(GAME_INST.panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
     } 
 
     // Display character's health as a part of the H.U.D.
     fill(240, 30, 30);
     textSize(14);
-    text("LIFE:  " + panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+    text("LIFE:  " + GAME_INST.panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
     text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
     noStroke();
 }
@@ -2819,7 +2850,7 @@ var drawHUD = function() {
     rect(0, -loopCount + SCREEN_HEIGHT * 1 / 40, 13, 210);
     fill(240, 30, 30);
     // 180 - (100 - panzer.health)
-    rect(0, -loopCount + SCREEN_HEIGHT * 1 / 40, 13, 210 - panzer.health * 2.1);
+    rect(0, -loopCount + SCREEN_HEIGHT * 1 / 40, 13, 210 - GAME_INST.panzer.health * 2.1);
 
     image(Assets_t.HUD, 0, -loopCount, SCREEN_WIDTH, SCREEN_HEIGHT);
     
@@ -2827,13 +2858,11 @@ var drawHUD = function() {
     pushMatrix();
     translate(52, -loopCount + 40);  // Move to the center of rotation
     //println(panzer.boostAvailable);
-    rotate(radians((-200 + panzer.boostAvailable) / 2));
+    rotate(radians((-200 + GAME_INST.panzer.boostAvailable) / 2));
     translate(-50, -(-loopCount + 35));  // Move back
     image(Assets_t.HUD_NEEDLE, 45, -loopCount + 4, SCREEN_WIDTH / 70, SCREEN_HEIGHT / 18);
     popMatrix();
 };
-
-var audio = new Audio('../assets/sound_files/wave1.mp3');
 
 /*
  * Overload Processing's callback function 
@@ -2881,7 +2910,7 @@ var draw = function() {
          * -------------------
          */
         case GameState_e.LEVEL_ONE:
-            audio.play();
+            wave_1_sound.play();
             //changeGameState(GameState_e.LEVEL_TWO);
 
             pushMatrix();
@@ -2893,17 +2922,17 @@ var draw = function() {
             loopCount++;
             if (loopCount > 0) { 
                 loopCount = -MAP_OFFSET;
-                panzer.y -= loopCount;
+                GAME_INST.panzer.y -= loopCount;
                 //loopIterations++;
                 changeGameState(GameState_e.LEVEL_TWO);
             }
             var tem = loopCount - 400
-            if (panzer.y > (abs(tem)+121)) {
-                panzer.y = abs(tem)+120
+            if (GAME_INST.panzer.y > (abs(tem)+121)) {
+                GAME_INST.panzer.y = abs(tem)+120
             }
 
-            if (panzer.y < (abs(tem)-401)) {
-                panzer.y = abs(tem)-400
+            if (GAME_INST.panzer.y < (abs(tem)-401)) {
+                GAME_INST.panzer.y = abs(tem)-400
             }
             
             // Draw the heads up display
@@ -2912,34 +2941,34 @@ var draw = function() {
             // 1st wave of enemies contained in the first tilemap defined in 
             // the game object
             if (loopIterations === 0) {  
-                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects);
+                checkCollisionWithEnemies(GAME_INST.panzer, GAME_INST.enemyObjects);
             }
             // 2nd wave of enemies (2nd map iteration) = 2nd tilemap
             else if (loopIterations === 1) {  
-                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects2);
+                checkCollisionWithEnemies(GAME_INST.panzer, GAME_INST.enemyObjects2);
             }
 
             // Main functionality of the panzer tank
-            panzer.draw(loopCount, GameState_e.LEVEL_ONE);
+            GAME_INST.panzer.draw(loopCount, GameState_e.LEVEL_ONE);
             
             // Lose Condition = Health is fully diminished and (tank is dead)
-            if (panzer.health <= 0) { 
+            if (GAME_INST.panzer.health <= 0) { 
                 changeGameState(GameState_e.ANIMATED_LOSE_TRANSITION);
             }
 
             // Check if the tank is upgraded
-            upgradeCollected = checkCollisionWithUpgrade(panzer, GAME_INST.gameObjects);
+            upgradeCollected = checkCollisionWithUpgrade(GAME_INST.panzer, GAME_INST.gameObjects);
 
             // Case: Basic upgrade collected
             if (upgradeCollected === ObjectType_e.BASIC_GUN && !tankUpgraded) {  
-                var autoFireEnabled = panzer.autoFireEnabled;
-                var currentHealth = panzer.health;
+                var autoFireEnabled = GAME_INST.panzer.autoFireEnabled;
+                var currentHealth = GAME_INST.panzer.health;
                 //var boostAvailable = panzer.boostAvailable;
                 //var rechargeTime = panzer.rechargeTime;
                 //var rechargeNeeded = panzer.reachardNeeded;
-                panzer = createTank(panzer.x, panzer.y, tankSpeed, TankOptions_e.UPGRADED);  // Create the upgraded tank
-                panzer.autoFireEnabled = autoFireEnabled;  // Remember previous tank state
-                panzer.health = currentHealth;  // Update the upgraded tanks health 
+                GAME_INST.panzer = createTank(GAME_INST.panzer.x, GAME_INST.panzer.y, tankSpeed, TankOptions_e.UPGRADED);  // Create the upgraded tank
+                GAME_INST.panzer.autoFireEnabled = autoFireEnabled;  // Remember previous tank state
+                GAME_INST.panzer.health = currentHealth;  // Update the upgraded tanks health 
                 //panzer.boostAvailable = boostAvailable;
                 //panzer.rechargeTime = rechargeTime;
                 //panzer.rechargeNeeded = rechargeNeeded;
@@ -2948,22 +2977,22 @@ var draw = function() {
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                if (panzer.health >= 90) {
-                    panzer.health = 100;
+                if (GAME_INST.panzer.health >= 90) {
+                    GAME_INST.panzer.health = 100;
                 }
                 else {
-                    panzer.health += 10;
+                    GAME_INST.panzer.health += 10;
                 }
             }
 
             // Case: Shotgun collected
             if (upgradeCollected === ObjectType_e.SHOT_GUN) {
-                panzer.shotGunEnabled = true;
+                GAME_INST.panzer.shotGunEnabled = true;
             }
 
             // Case: MiniGun Collected
             if (upgradeCollected === ObjectType_e.MINI_GUN) {
-                panzer.miniGunEnabled = true;
+                GAME_INST.panzer.miniGunEnabled = true;
             }
 
             popMatrix();
@@ -2984,18 +3013,18 @@ var draw = function() {
             loopCount++;
             if (loopCount > 0) { 
                 loopCount = -MAP_HEIGHT;
-                panzer.y -= loopCount;
+                GAME_INST.panzer.y -= loopCount;
                 //loopIterations++;
                 changeGameState(GameState_e.LEVEL_THREE);
             }
 
             var tem = loopCount - 400
-            if (panzer.y > (abs(tem)+121)) {
-                panzer.y = abs(tem)+120
+            if (GAME_INST.panzer.y > (abs(tem)+121)) {
+                GAME_INST.panzer.y = abs(tem)+120
             }
 
-            if (panzer.y < (abs(tem)-401)) {
-                panzer.y = abs(tem)-400
+            if (GAME_INST.panzer.y < (abs(tem)-401)) {
+                GAME_INST.panzer.y = abs(tem)-400
             }
             
             // Advance to level 3 once level 2 is complete
@@ -3011,52 +3040,52 @@ var draw = function() {
             // 1st wave of enemies contained in the first tilemap defined in 
             // the game object
             if (loopIterations === 0) {  
-                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects3);
+                checkCollisionWithEnemies(GAME_INST.panzer, GAME_INST.enemyObjects3);
             }
             // 2nd wave of enemies (2nd map iteration) = 2nd tilemap
             else if (loopIterations === 1) {  
-                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects4);
+                checkCollisionWithEnemies(GAME_INST.panzer, GAME_INST.enemyObjects4);
             }
 
             // Main functionality of the panzer tank
-            panzer.draw(loopCount, GameState_e.LEVEL_TWO);
+            GAME_INST.panzer.draw(loopCount, GameState_e.LEVEL_TWO);
             
             // Lose Condition = Health is fully diminished and (tank is dead)
-            if (panzer.health <= 0) { 
+            if (GAME_INST.panzer.health <= 0) { 
                 changeGameState(GameState_e.ANIMATED_LOSE_TRANSITION);
             }
 
             // Check if the tank is upgraded
-            upgradeCollected = checkCollisionWithUpgrade(panzer, GAME_INST.gameObjects3);
+            upgradeCollected = checkCollisionWithUpgrade(GAME_INST.panzer, GAME_INST.gameObjects3);
 
             // Case: Basic upgrade collected
             if (upgradeCollected === ObjectType_e.BASIC_GUN && !tankUpgraded) {  
-                var autoFireEnabled = panzer.autoFireEnabled;
-                var currentHealth = panzer.health;
-                panzer = createTank(panzer.x, panzer.y, tankSpeed, TankOptions_e.UPGRADED);  // Create the upgraded tank
-                panzer.autoFireEnabled = autoFireEnabled;  // Remember previous tank state
-                panzer.health = currentHealth;  // Update the upgraded tanks health 
+                var autoFireEnabled = GAME_INST.panzer.autoFireEnabled;
+                var currentHealth = GAME_INST.panzer.health;
+                GAME_INST.panzer = createTank(GAME_INST.panzer.x, GAME_INST.panzer.y, tankSpeed, TankOptions_e.UPGRADED);  // Create the upgraded tank
+                GAME_INST.panzer.autoFireEnabled = autoFireEnabled;  // Remember previous tank state
+                GAME_INST.panzer.health = currentHealth;  // Update the upgraded tanks health 
                 tankUpgraded = true;  // Control variable to ensure only 1x execution of this logical block
             }
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                if (panzer.health >= 90) {
-                    panzer.health = 100;
+                if (GAME_INST.panzer.health >= 90) {
+                    GAME_INST.panzer.health = 100;
                 }
                 else {
-                    panzer.health += 10;
+                    GAME_INST.panzer.health += 10;
                 }
             }
 
             // Case: Shotgun collected
             if (upgradeCollected === ObjectType_e.SHOT_GUN) {
-                panzer.shotGunEnabled = true;
+                GAME_INST.panzer.shotGunEnabled = true;
             }
 
             // Case: MiniGun Collected
             if (upgradeCollected === ObjectType_e.MINI_GUN) {
-                panzer.miniGunEnabled = true;
+                GAME_INST.panzer.miniGunEnabled = true;
             }
 
             popMatrix();
@@ -3077,18 +3106,18 @@ var draw = function() {
             loopCount++;
             if (loopCount > 0) { 
                 loopCount = -MAP_HEIGHT;
-                panzer.y -= loopCount;
+                GAME_INST.panzer.y -= loopCount;
                 //loopIterations++;
                 changeGameState(GameState_e.FINAL_STAGE);
             }
 
             var tem = loopCount - 400
-            if (panzer.y > (abs(tem)+121)) {
-                panzer.y = abs(tem)+120
+            if (GAME_INST.panzer.y > (abs(tem)+121)) {
+                GAME_INST.panzer.y = abs(tem)+120
             }
 
-            if (panzer.y < (abs(tem)-401)) {
-                panzer.y = abs(tem)-400
+            if (GAME_INST.panzer.y < (abs(tem)-401)) {
+                GAME_INST.panzer.y = abs(tem)-400
             }
             
             // Advance to winning transition once level 3 is complete
@@ -3104,52 +3133,52 @@ var draw = function() {
             // 1st wave of enemies contained in the first tilemap defined in 
             // the game object
             if (loopIterations === 0) {  
-                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects5);
+                checkCollisionWithEnemies(GAME_INST.panzer, GAME_INST.enemyObjects5);
             }
             // 2nd wave of enemies (2nd map iteration) = 2nd tilemap
             else if (loopIterations === 1) {  
-                checkCollisionWithEnemies(panzer, GAME_INST.enemyObjects6);
+                checkCollisionWithEnemies(GAME_INST.panzer, GAME_INST.enemyObjects6);
             }
 
             // Main functionality of the panzer tank
-            panzer.draw(loopCount, GameState_e.LEVEL_THREE);
+            GAME_INST.panzer.draw(loopCount, GameState_e.LEVEL_THREE);
             
             // Lose Condition = Health is fully diminished and (tank is dead)
-            if (panzer.health <= 0) { 
+            if (GAME_INST.panzer.health <= 0) { 
                 changeGameState(GameState_e.ANIMATED_LOSE_TRANSITION);
             }
 
             // Check if the tank is upgraded
-            upgradeCollected = checkCollisionWithUpgrade(panzer, GAME_INST.gameObjects5);
+            upgradeCollected = checkCollisionWithUpgrade(GAME_INST.panzer, GAME_INST.gameObjects5);
 
             // Case: Basic upgrade collected
             if (upgradeCollected === ObjectType_e.BASIC_GUN && !tankUpgraded) {  
-                var autoFireEnabled = panzer.autoFireEnabled;
-                var currentHealth = panzer.health;
-                panzer = createTank(panzer.x, panzer.y, tankSpeed, TankOptions_e.UPGRADED);  // Create the upgraded tank
-                panzer.autoFireEnabled = autoFireEnabled;  // Remember previous tank state
-                panzer.health = currentHealth;  // Update the upgraded tanks health 
+                var autoFireEnabled = GAME_INST.panzer.autoFireEnabled;
+                var currentHealth = GAME_INST.panzer.health;
+                GAME_INST.panzer = createTank(GAME_INST.panzer.x, GAME_INST.panzer.y, tankSpeed, TankOptions_e.UPGRADED);  // Create the upgraded tank
+                GAME_INST.panzer.autoFireEnabled = autoFireEnabled;  // Remember previous tank state
+                GAME_INST.panzer.health = currentHealth;  // Update the upgraded tanks health 
                 tankUpgraded = true;  // Control variable to ensure only 1x execution of this logical block
             }
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                if (panzer.health >= 90) {
-                    panzer.health = 100;
+                if (GAME_INST.panzer.health >= 90) {
+                    GAME_INST.panzer.health = 100;
                 }
                 else {
-                    panzer.health += 10;
+                    GAME_INST.panzer.health += 10;
                 }
             }
 
             // Case: Shotgun collected
             if (upgradeCollected === ObjectType_e.SHOT_GUN) {
-                panzer.shotGunEnabled = true;
+                GAME_INST.panzer.shotGunEnabled = true;
             }
 
             // Case: MiniGun Collected
             if (upgradeCollected === ObjectType_e.MINI_GUN) {
-                panzer.miniGunEnabled = true;
+                GAME_INST.panzer.miniGunEnabled = true;
             }
 
             popMatrix();
@@ -3166,7 +3195,7 @@ var draw = function() {
             pushMatrix();
             translate(0, -MAP_HEIGHT);
 
-            panzer.fireRate = 5;
+            GAME_INST.panzer.fireRate = 5;
 
             GAME_INST.drawFinalStage();
 
@@ -3176,16 +3205,16 @@ var draw = function() {
             }
 
             var tem = -(MAP_OFFSET + SCREEN_HEIGHT / 2);
-            if (panzer.y > (abs(tem)+121)) {
-                panzer.y = abs(tem)+120
+            if (GAME_INST.panzer.y > (abs(tem)+121)) {
+                GAME_INST.panzer.y = abs(tem)+120
             }
 
-            if (panzer.y < (abs(tem)-401)) {
-                panzer.y = abs(tem)-400
+            if (GAME_INST.panzer.y < (abs(tem)-401)) {
+                GAME_INST.panzer.y = abs(tem)-400
             }
 
             // Main functionality of the panzer tank
-            panzer.draw(loopCount, GameState_e.FINAL_STAGE);
+            GAME_INST.panzer.draw(loopCount, GameState_e.FINAL_STAGE);
 
             GAME_INST.finalBoss.draw();
             GAME_INST.finalBoss.wander();
@@ -3193,7 +3222,7 @@ var draw = function() {
             checkCollisionWithBoss(panzer, GAME_INST.finalBoss);
 
             // Lose Condition = Health is fully diminished and (tank is dead)
-            if (panzer.health <= 0) { 
+            if (GAME_INST.panzer.health <= 0) { 
                 changeGameState(GameState_e.ANIMATED_LOSE_TRANSITION);
             }
             
@@ -3202,26 +3231,26 @@ var draw = function() {
                 changeGameState(GameState_e.ANIMATED_WIN_TRANSITION);
             }
             
-            upgradeCollected = checkCollisionWithUpgrade(panzer, GAME_INST.finalHealthPickups);
+            upgradeCollected = checkCollisionWithUpgrade(GAME_INST.panzer, GAME_INST.finalHealthPickups);
             
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                if (panzer.health >= 90) {
-                    panzer.health = 100;
+                if (GAME_INST.panzer.health >= 90) {
+                    GAME_INST.panzer.health = 100;
                 }
                 else {
-                    panzer.health += 10;
+                    GAME_INST.panzer.health += 10;
                 }
             }
 
             // Case: Shotgun collected
             if (upgradeCollected === ObjectType_e.SHOT_GUN) {
-                panzer.shotGunEnabled = true;
+                GAME_INST.panzer.shotGunEnabled = true;
             }
 
             // Case: MiniGun Collected
             if (upgradeCollected === ObjectType_e.MINI_GUN) {
-                panzer.miniGunEnabled = true;
+                GAME_INST.panzer.miniGunEnabled = true;
             }
 
             // Draw the heads up display
@@ -3288,7 +3317,7 @@ var draw = function() {
         case GameState_e.CREDITS:  // Placeholder for end credits animation in a future version/release of the game
             // reinitialize all game variables for the next iteration of game play
             loopCount = -MAP_HEIGHT;
-            panzer = createTank(
+            GAME_INST.panzer = createTank(
                 SCREEN_WIDTH / 2 - TILE_WIDTH / 2, 
                 -loopCount + SCREEN_HEIGHT * 2 / 3, 
                 tankSpeed, 
