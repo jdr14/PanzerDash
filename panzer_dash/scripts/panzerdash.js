@@ -78,6 +78,10 @@ var TILE_MAP_LENGTH = MAP_HEIGHT / TILE_HEIGHT;
 var BOSS_HEIGHT = TILE_HEIGHT * 2;
 var BOSS_WIDTH = TILE_WIDTH * 2;
 
+var MAX_PANZER_HEALTH = 200;
+var HEALTH_BONUS = 20;
+var spawnThreshold = -180;
+
 // Preload necessary game assets by using Processing's preload directive
 /*
     @pjs 
@@ -279,8 +283,11 @@ var Assets_t = {
     ],
 };
 
-var wave_1_sound = new Audio('../assets/sound_files/wave1.mp3');
-var explosion_1_sound = document.getElementById("enemyExplode");//new Sound('assets/sound_files/SFX_enemy_explode_1.wav');
+// var wave_1_sound = new Audio('../assets/sound_files/wave1.mp3');
+var wave_1_sound = document.getElementById("wave1Music");
+var explosion_1_sound = document.getElementById("enemyExplode1");//new Sound('assets/sound_files/SFX_enemy_explode_1.wav');
+var enemy_fire = document.getElementById("enemyFire");
+var tank_fire = document.getElementById("tankFire");//.loop = true;
 // var explosion_2_sound = new Audio('assets/sound_files/SFX_enemy_explode_2.wav');
 // var enemy_fire_sound = new Audio('assets/sound_files/SFX_enemy_fire.wav');
 // var tank_fire_sound = new Audio('assets/sound_files/SFX_tank_fire.wav');
@@ -891,7 +898,7 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     if (!DISABLE.UP || this.autoFireEnabled) {  // Fire the gun
         if (frameCount % this.fireRate === 0) {
             if (!this.shotGunEnabled) {
-                //tank_fire_sound.play();
+                tank_fire.play();
                 this.bullets.push(new bulletObj(this.x + TILE_WIDTH / 2, this.y + TILE_HEIGHT / 6, this.bulletSpeed));
             }
             else {  // Shotgun enabled
@@ -1374,8 +1381,6 @@ var enemy1Obj = function(x, y) {
     this.objectType = ObjectType_e.ENEMY;
 };
 
-var spawnThreshold = -200;
-
 enemy1Obj.prototype.draw = function(panzer) {
     if (!this.defeated && (this.position.y + loopCount) > spawnThreshold) {
         var temp = loopCount + this.position.y;
@@ -1403,10 +1408,14 @@ enemy1Obj.prototype.wander = function() {
         this.wanderAngle += random(-90, 90);
     }
 
-    if (this.position.x > 802) {this.position.x = -2;}
-    else if (this.position.x < -2) {this.position.x = 802;}
+    if (this.position.x >= SCREEN_WIDTH - (TILE_WIDTH / 2)) {this.position.x = SCREEN_WIDTH - (TILE_WIDTH / 2);}
+    else if (this.position.x <= (TILE_WIDTH / 2)) {this.position.x = (TILE_WIDTH / 2);}
     if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
     else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
+    // if (this.position.x > 802) {this.position.x = -2;}
+    // else if (this.position.x < -2) {this.position.x = 802;}
+    // if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
+    // else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
 
 var enemy2Obj = function(x, y, s) {
@@ -1437,6 +1446,7 @@ enemy2Obj.prototype.draw = function() {
         }
 
         for (var i = 0; i < this.bullets.length; i++) {
+            enemy_fire.play();
             this.bullets[i].draw(1);
             // this.bullets[i].hitTank();
             this.bullets[i].TankCollsionCheck();
@@ -1461,8 +1471,8 @@ enemy2Obj.prototype.wander = function() {
         this.wanderAngle += random(-90, 90);
     }
 
-    if (this.position.x > 810) {this.position.x = -5;}
-    else if (this.position.x < -5) {this.position.x = 810;}
+    if (this.position.x >= SCREEN_WIDTH - (TILE_WIDTH / 2)) {this.position.x = SCREEN_WIDTH - (TILE_WIDTH / 2);}
+    else if (this.position.x <= (TILE_WIDTH / 2)) {this.position.x = (TILE_WIDTH / 2);}
     if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
     else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
@@ -1517,8 +1527,8 @@ enemy3Obj.prototype.wander = function() {
         this.wanderAngle += random(-90, 90);
     }
 
-    if (this.position.x > 810) {this.position.x = -5;}
-    else if (this.position.x < -5) {this.position.x = 810;}
+    if (this.position.x >= SCREEN_WIDTH - (TILE_WIDTH / 2)) {this.position.x = SCREEN_WIDTH - (TILE_WIDTH / 2);}
+    else if (this.position.x <= (TILE_WIDTH / 2)) {this.position.x = (TILE_WIDTH / 2);}
     if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
     else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
@@ -1895,7 +1905,7 @@ var createRandomizedTileMap = function(tMap, difficulty) {
                 var line = "";  // Create a line to be added to the pagemap later
                 
                 // Assemble the line to add to the tilemap
-                if (i === 20) {
+                if (i % 16 === 0 && i != 0) { // health line every 15 lines
                     line = healthLine;
                 }
                 else {
@@ -1922,12 +1932,9 @@ var createRandomizedTileMap = function(tMap, difficulty) {
             }
             tMap.push("            ");
             tMap.push("            ");
-            // if (iterNum === 1) {
-                tMap.push("     y      ");
-            // }
-            // else {
-            //     tMap.push("            ");
-            // }
+
+            tMap.push("     y      ");
+
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
@@ -1948,13 +1955,14 @@ var createRandomizedTileMap = function(tMap, difficulty) {
             var probability = [0, 0, 0, 0, 1, 1, 1, 2, 2, 3];
 
             // Most amount of health pickups allowed
-            var maxHealthPickups = 3;
-            var numHealthPickups = round(random(1, maxHealthPickups)); 
+            var numHealthPickups = round(random(2, 5)); 
             var healthPickUpCount = 0;
             var healthLines = [
                 "  h         ",
                 "        h   ",
                 "       h    ",
+                "    h       ",
+                "     h      ",
             ];
             var count = 0;
 
@@ -2001,7 +2009,7 @@ var createRandomizedTileMap = function(tMap, difficulty) {
                 var line = "";  // Create a line to be added to the pagemap later
 
                 // Assemble the line to add to the tilemap
-                if (i % 15 === 0 && i != 0 && count < healthLines.length) {
+                if (i % 12 === 0 && i != 0 && count < healthLines.length) {
                     line = healthLines[count];
                     count++;
                 }
@@ -2035,12 +2043,9 @@ var createRandomizedTileMap = function(tMap, difficulty) {
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
-            // if (iterNum === 1) {
-                tMap.push("         m  ");  // m = minigun
-            // }
-            // else {
-            //     tMap.push("            ");
-            // }
+
+            tMap.push("        m   ");  // m = minigun
+
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
@@ -2060,14 +2065,16 @@ var createRandomizedTileMap = function(tMap, difficulty) {
             var probability = [0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4];
             
             // Most amount of health pickups allowed
-            var maxHealthPickups = 4;
-            var numHealthPickups = round(random(1, maxHealthPickups)); 
+            var numHealthPickups = round(random(3, 7)); 
             var healthPickUpCount = 0;
             var healthLines = [
                 "      h     ",
                 "         h  ",
                 "  h         ",
                 "     h      ",
+                "       h    ",
+                "   h        ",
+                "        h   ",
             ];
             var count = 0;
 
@@ -2134,7 +2141,7 @@ var createRandomizedTileMap = function(tMap, difficulty) {
                 var line = "";  // Create a line to be added to the pagemap later
 
                 // Assemble the line to add to the tilemap
-                if (i % 10 === 0 && i != 0 && count < healthLines.length) {
+                if (i % 8 === 0 && i != 0 && count < healthLines.length) {
                     line = healthLines[count];
                     count++;
                 }
@@ -2173,12 +2180,9 @@ var createRandomizedTileMap = function(tMap, difficulty) {
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
-            // if (iterNum === 1) {
-                tMap.push("    s       ");  // s = shotgun
-            // }
-            // else {
-            //     tMap.push("            ");
-            // }
+
+            tMap.push("            ");  // s = shotgun
+
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
@@ -2201,68 +2205,6 @@ gameObj.prototype.initialize = function() {
     // Create custom tilemaps for level 3
     createRandomizedTileMap(this.tilemap5, MapDifficulty_e.HARD);
     //createRandomizedTileMap(this.tilemap6, MapDifficulty_e.HARD);
-    
-    // TODO: Debug
-    /*this.tilemap = [
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "      b     ",
-        "            ",
-        "      a     ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "            ",
-        "      h     ",
-        "            ",
-        "            ",
-    ];*/
 
     // Initialize arrays based off of tilemap for 1st iteration of the 1st level
     for (var i = 0; i < this.tilemap.length; i++) {
@@ -2886,38 +2828,38 @@ var animationCount = 0;
 var fontSize = 48;
 var loopIterations = 0;
 
-var drawHUD_old = function() {
-    // Life bar 
-    stroke();
-    fill(50, 230, 50);
-    rect(80, -loopCount + SCREEN_HEIGHT * 1 / 30, 100, 10);
-    fill(240, 30, 30);
-    rect(180 - (100 - GAME_INST.panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - GAME_INST.panzer.health, 10);
+// var drawHUD_old = function() {
+//     // Life bar 
+//     stroke();
+//     fill(50, 230, 50);
+//     rect(80, -loopCount + SCREEN_HEIGHT * 1 / 30, 100, 10);
+//     fill(240, 30, 30);
+//     rect(180 - (100 - GAME_INST.panzer.health), -loopCount + SCREEN_HEIGHT * 1 / 30, 100 - GAME_INST.panzer.health, 10);
 
-    // Boost bar
-    fill(30, 30, 240);
-    rect(100, -loopCount + SCREEN_HEIGHT * 23 / 24, 100, 10);
-    fill(240, 30, 30);
-    if (GAME_INST.panzer.boostAvailable > 0) {
-        rect(200 - (100 - GAME_INST.panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - GAME_INST.panzer.boostAvailable, 10);
-        text("BOOST:  " + GAME_INST.panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
-    }
-    else {
-        rect(
-            200 - (floor(GAME_INST.panzer.rechargeTime / 3)), 
-            -loopCount + SCREEN_HEIGHT * 23 / 24, 
-            floor(GAME_INST.panzer.rechargeTime / 3), 
-            10);
-        text("BOOST:  " + (100 - floor(GAME_INST.panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
-    } 
+//     // Boost bar
+//     fill(30, 30, 240);
+//     rect(100, -loopCount + SCREEN_HEIGHT * 23 / 24, 100, 10);
+//     fill(240, 30, 30);
+//     if (GAME_INST.panzer.boostAvailable > 0) {
+//         rect(200 - (100 - GAME_INST.panzer.boostAvailable), -loopCount + SCREEN_HEIGHT * 23 / 24, 100 - GAME_INST.panzer.boostAvailable, 10);
+//         text("BOOST:  " + GAME_INST.panzer.boostAvailable, 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+//     }
+//     else {
+//         rect(
+//             200 - (floor(GAME_INST.panzer.rechargeTime / 3)), 
+//             -loopCount + SCREEN_HEIGHT * 23 / 24, 
+//             floor(GAME_INST.panzer.rechargeTime / 3), 
+//             10);
+//         text("BOOST:  " + (100 - floor(GAME_INST.panzer.rechargeTime / 3)), 10,  -loopCount + SCREEN_HEIGHT * 39 / 40);
+//     } 
 
-    // Display character's health as a part of the H.U.D.
-    fill(240, 30, 30);
-    textSize(14);
-    text("LIFE:  " + GAME_INST.panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
-    text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
-    noStroke();
-}
+//     // Display character's health as a part of the H.U.D.
+//     fill(240, 30, 30);
+//     textSize(14);
+//     text("LIFE:  " + GAME_INST.panzer.health, 10, -loopCount + SCREEN_HEIGHT * 1 / 20);
+//     text("SCORE:  " + GAME_INST.score * 10, 700, -loopCount + SCREEN_HEIGHT * 1 / 20);
+//     noStroke();
+// }
 
 var drawHUD = function() {
     noStroke();
@@ -2955,9 +2897,6 @@ var draw = function() {
         case GameState_e.START_SCREEN:
             drawStartScreen();
             if (MouseState.PRESSED && mouseX < 303 && mouseX > 0 && mouseY < 164 && mouseY > 64) {
-                //Assets_t.WAVE_1.play()
-                //userStartAudio();
-                //touchStarted();
                 changeGameState(GameState_e.ANIMATED_LOAD_TRANSITION);
                 MouseState.PRESSED = 0;  // Force a click release
             }
@@ -2985,8 +2924,8 @@ var draw = function() {
          * -------------------
          */
         case GameState_e.LEVEL_ONE:
-            wave_1_sound.play();
             //changeGameState(GameState_e.LEVEL_TWO);
+            wave_1_sound.play();
 
             pushMatrix();
             translate(0, loopCount);
@@ -3000,6 +2939,7 @@ var draw = function() {
                 GAME_INST.panzer.y -= loopCount;
                 //loopIterations++;
                 changeGameState(GameState_e.LEVEL_TWO);
+                wave_1_sound.pause();
             }
             var tem = loopCount - 400
             if (GAME_INST.panzer.y > (abs(tem)+121)) {
@@ -3052,11 +2992,13 @@ var draw = function() {
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                if (GAME_INST.panzer.health >= 90) {
-                    GAME_INST.panzer.health = 100;
+                healthPickup.play();
+                if (GAME_INST.panzer.health >= MAX_PANZER_HEALTH - HEALTH_BONUS) {
+                    GAME_INST.panzer.health = MAX_PANZER_HEALTH;
                 }
                 else {
-                    GAME_INST.panzer.health += 10;
+                    healthPickup.play();
+                    GAME_INST.panzer.health += HEALTH_BONUS;
                 }
             }
 
@@ -3145,11 +3087,12 @@ var draw = function() {
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                if (GAME_INST.panzer.health >= 90) {
-                    GAME_INST.panzer.health = 100;
+                healthPickup.play();
+                if (GAME_INST.panzer.health >= MAX_PANZER_HEALTH - HEALTH_BONUS) {
+                    GAME_INST.panzer.health = MAX_PANZER_HEALTH;
                 }
                 else {
-                    GAME_INST.panzer.health += 10;
+                    GAME_INST.panzer.health += HEALTH_BONUS;
                 }
             }
 
@@ -3238,11 +3181,12 @@ var draw = function() {
 
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                if (GAME_INST.panzer.health >= 90) {
-                    GAME_INST.panzer.health = 100;
+                healthPickup.play();
+                if (GAME_INST.panzer.health >= MAX_PANZER_HEALTH - HEALTH_BONUS) {
+                    GAME_INST.panzer.health = MAX_PANZER_HEALTH;
                 }
                 else {
-                    GAME_INST.panzer.health += 10;
+                    GAME_INST.panzer.health += HEALTH_BONUS;
                 }
             }
 
@@ -3310,11 +3254,12 @@ var draw = function() {
             
             // Case: Health collected
             if (upgradeCollected === ObjectType_e.HEALTH) {
-                if (GAME_INST.panzer.health >= 90) {
-                    GAME_INST.panzer.health = 100;
+                healthPickup.play();
+                if (GAME_INST.panzer.health >= MAX_PANZER_HEALTH - HEALTH_BONUS) {
+                    GAME_INST.panzer.health = MAX_PANZER_HEALTH;
                 }
                 else {
-                    GAME_INST.panzer.health += 10;
+                    GAME_INST.panzer.health += HEALTH_BONUS;
                 }
             }
 
