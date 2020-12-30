@@ -62,7 +62,7 @@ var ENABLE_DEBUG_MODE = false;
 var sketchProc=function(processingInstance){ with (processingInstance) {
 size(SCREEN_WIDTH, SCREEN_HEIGHT); 
 
-FPS = 80;
+FPS = 75;
 frameRate(FPS);
 
 // Variable describing the total map pixel lengths
@@ -280,7 +280,7 @@ var Assets_t = {
 };
 
 var wave_1_sound = new Audio('../assets/sound_files/wave1.mp3');
-// var explosion_1_sound = new Audio('assets/sound_files/SFX_enemy_explode_1.wav');
+var explosion_1_sound = document.getElementById("enemyExplode");//new Sound('assets/sound_files/SFX_enemy_explode_1.wav');
 // var explosion_2_sound = new Audio('assets/sound_files/SFX_enemy_explode_2.wav');
 // var enemy_fire_sound = new Audio('assets/sound_files/SFX_enemy_fire.wav');
 // var tank_fire_sound = new Audio('assets/sound_files/SFX_tank_fire.wav');
@@ -522,34 +522,68 @@ bulletObj.prototype.draw = function(type) {
 /*
  * Pass in a loop counter to track how many loop passes have been made
  */
-prevTime = 0;
-var explodeLength = 5;
+var explodeLength = 7;
 var explodeFrames = 8;
+var scaleFactor = 1.5;
+// var offsetFactor = 10;
 var explode1 = function(explodeCount, x, y) {
+    explosion_1_sound.play();
     if (explodeCount < explodeLength) {  // frame 1 
         image(Assets_t.BOOM[0], x, y, TILE_WIDTH, TILE_HEIGHT);
     }
     else if (explodeCount >= explodeLength * 1 && explodeCount < explodeLength * 2) {  // frame 2
-        image(Assets_t.BOOM[1], x, y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.BOOM[1], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
     }
     else if (explodeCount >= explodeLength * 2 && explodeCount < explodeLength * 3) {
-        image(Assets_t.BOOM[2], x, y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.BOOM[2], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
     }
     else if (explodeCount >= explodeLength * 3 && explodeCount < explodeLength * 4) {
-        image(Assets_t.BOOM[3], x, y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.BOOM[3], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
     }
     else if (explodeCount >= explodeLength * 4 && explodeCount < explodeLength * 5) {
-        image(Assets_t.BOOM[4], x, y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.BOOM[4], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        // image(Assets_t.BOOM[0], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
     }
     else if (explodeCount >= explodeLength * 5 && explodeCount < explodeLength * 6) {
-        image(Assets_t.BOOM[5], x, y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.BOOM[5], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        // image(Assets_t.BOOM[1], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
     }
     else if (explodeCount >= explodeLength * 6 && explodeCount < explodeLength * 7) {
-        image(Assets_t.BOOM[6], x, y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.BOOM[6], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        // image(Assets_t.BOOM[2], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
     }
     else if (explodeCount >= explodeLength * 7 && explodeCount < explodeLength * 8) {  // frame 8
-        image(Assets_t.BOOM[7], x, y, TILE_WIDTH, TILE_HEIGHT);
+        image(Assets_t.BOOM[7], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        // image(Assets_t.BOOM[3], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
     }
+    // else if (explodeCount >= explodeLength * 8 && explodeCount < explodeLength * 9) {  
+    //     image(Assets_t.BOOM[4], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    //     image(Assets_t.BOOM[0], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    // }
+    // else if (explodeCount >= explodeLength * 9 && explodeCount < explodeLength * 10) {  
+    //     image(Assets_t.BOOM[5], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    //     image(Assets_t.BOOM[1], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    // }
+    // else if (explodeCount >= explodeLength * 10 && explodeCount < explodeLength * 11) {  
+    //     image(Assets_t.BOOM[6], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    //     image(Assets_t.BOOM[2], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    // }
+    // else if (explodeCount >= explodeLength * 11 && explodeCount < explodeLength * 12) {  
+    //     image(Assets_t.BOOM[7], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    //     image(Assets_t.BOOM[3], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    // }
+    // else if (explodeCount >= explodeLength * 12 && explodeCount < explodeLength * 13) {  
+    //     image(Assets_t.BOOM[4], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    // }
+    // else if (explodeCount >= explodeLength * 13 && explodeCount < explodeLength * 14) {  
+    //     image(Assets_t.BOOM[5], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    // }
+    // else if (explodeCount >= explodeLength * 14 && explodeCount < explodeLength * 15) {  
+    //     image(Assets_t.BOOM[6], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    // }
+    // else if (explodeCount >= explodeLength * 15 && explodeCount < explodeLength * 16) {  
+    //     image(Assets_t.BOOM[7], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+    // }
 };
 
 bulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
@@ -1351,7 +1385,7 @@ enemy1Obj.prototype.draw = function(panzer) {
         image(Assets_t.ENEMY1_BASE, this.position.x, this.position.y, TILE_WIDTH, TILE_HEIGHT);
         image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3/4, TILE_WIDTH, TILE_HEIGHT);
     }
-    else if (this.defeated && this.dcount < 41) {
+    else if (this.defeated && this.dcount <= explodeLength * explodeFrames) {
         explode1(this.dcount, this.final_x, this.final_y);
         this.dcount++;
     }
@@ -1408,7 +1442,7 @@ enemy2Obj.prototype.draw = function() {
             this.bullets[i].TankCollsionCheck();
         }
     }
-    else if (this.defeated && this.dcount < 41) {
+    else if (this.defeated && this.dcount <= explodeLength * explodeFrames) {
         explode1(this.dcount, this.final_x, this.final_y);
         this.dcount++;
     }
