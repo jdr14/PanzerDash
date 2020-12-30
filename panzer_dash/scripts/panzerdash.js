@@ -281,6 +281,8 @@ var Assets_t = {
         loadImage('../assets/explosions/boom7.png'),
         loadImage('../assets/explosions/boom8.png'),
     ],
+
+    TSHELL: loadImage('../assets/munition/T_Shell.png'),
 };
 
 // var wave_1_sound = new Audio('../assets/sound_files/wave1.mp3');
@@ -776,9 +778,12 @@ bulletObj.prototype.TankCollsionCheck = function() {
 }
 
 var tankShellObj = function(x, y, s, gunAngle) {
+    this.start_x = x;
+    this.start_y = y;
+    this.angle = 0;
     this.position = new PVector(x, y);
-    this.w = 4;  // width
-    this.l = 8;  // length
+    this.w = 8;  // width
+    this.l = 20;  // length
     this.speed = new PVector(s * Math.cos(gunAngle), s * Math.sin(gunAngle))
     this.damage = 3;
     this.hit = 0;
@@ -787,14 +792,20 @@ var tankShellObj = function(x, y, s, gunAngle) {
 tankShellObj.prototype.draw = function(gunAngle) {
     if (this.hit === 0) {
         // Draw the actual tank shell
-        // fill(160, 160, 160);
-        // rect(this.position.x - this.w / 2, this.position.y, this.w, this.l);
-        fill(240, 20, 20);
-        ellipse(this.position.x, this.position.y, this.l / 2, this.l / 2);
-    
-        fill(40, 40, 40);
-        ellipse(this.position.x, this.position.y, this.l, this.l);
-        
+        // fill(240, 20, 20);
+        // ellipse(this.position.x, this.position.y, this.l / 2, this.l / 2);
+        // fill(40, 40, 40);
+        // ellipse(this.position.x, this.position.y, this.l, this.l);
+        pushMatrix();
+        if (this.position.x === this.start_x && this.position.y === this.start_y) {
+            this.angle = gunAngle;
+        }
+        translate(this.position.x + this.w / 2, this.position.y + this.l / 2);  // Move to the center of rotation
+        rotate(radians(this.angle));
+        translate( -(this.position.x + this.w / 2), -(this.position.y + this.l / 2));  // Move back
+        image(Assets_t.TSHELL, this.position.x, this.position.y, this.w, this.l);
+        popMatrix();
+
         // Add velocity to the shell
         this.position.add(this.speed); 
     }
