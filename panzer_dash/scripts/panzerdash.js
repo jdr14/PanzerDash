@@ -244,11 +244,13 @@ var GameScreens_t = {
 // Load other assets in this 'struct'
 var Assets_t = { 
     // Main character(s)
-    PANZER:     loadImage('../assets/main_character/tank_body.png'),
-    PANZER1:    loadImage('../assets/main_character/player_idle1.png'),
-    PANZER2:    loadImage('../assets/main_character/player_idle2.png'),
-    PANZER3:    loadImage('../assets/main_character/player_idle3.png'),
-    PANZER_GUN: loadImage('../assets/main_character/tank_gun.png'),
+    // PANZER:     loadImage('../assets/main_character/tank_body.png'),
+    // PANZER1:    loadImage('../assets/main_character/player_idle1.png'),
+    // PANZER2:    loadImage('../assets/main_character/player_idle2.png'),
+    // PANZER3:    loadImage('../assets/main_character/player_idle3.png'),
+    PANZER_GUN: loadImage('../assets/main_character/tank_gun2.png'),
+    PANZER_DUAL_MINIGUN: loadImage('../assets/main_character/tank_gun_dual_miniguns.png'),
+    PANZER_ROCKETS: loadImage('../assets/main_character/tank_gun_rockets.png'),
 
     // Enemy character(s)
     ENEMY1_BASE:   loadImage('../assets/enemies/enemy1_base.png'),
@@ -263,8 +265,10 @@ var Assets_t = {
     BOSS_FRONT:   loadImage('../assets/enemies/boss_front.png'),
 
     // Main character upgrades
-    SHOT_GUN_PICKUP: loadImage('../assets/pickups/pickup_shotgun.png'),
+    DUAL_GUN_PICKUP: loadImage('../assets/pickups/pickup_dualgun.png'),
     MINI_GUN_PICKUP: loadImage('../assets/pickups/pickup_rapidfire.png'),
+    DUAL_MINIGUN_PICKUP: loadImage('../assets/pickups/pickup_flak.jpg'),
+    ROCKET_GUN_PICKUP: loadImage('../assets/pickups/pickup_rocket.jpg'),
     HEALTH_PICKUP:   loadImage('../assets/pickups/pickup_health.png'),
 
     // Heads up display
@@ -295,25 +299,33 @@ var tank_fire = document.getElementById("tankFire");//.loop = true;
 // var tank_fire_sound = new Audio('assets/sound_files/SFX_tank_fire.wav');
 // var health_pickup_sound = new Audio('assets/sound_files/SFX_player_health_pickup.wav');
 
+var canvas = document.getElementById("mycanvas");
+var panzer_img = document.getElementById("panzer_sprite_sheet");
+var panzer_ctx = canvas.getContext("2d");
+
 var TankOptions_e = {
     BASIC: 0,
     UPGRADED: 1,
 };
 
 var ObjectType_e = {
-    BASIC_GUN: 0, // collectable
-    HEALTH: 1,    // collectable
-    SHOT_GUN: 2,  // collectable
-    MINI_GUN: 3,  // collectable
-    TANK: 4,
-    ENEMY: 5,
+    BASIC_GUN: 0,    // collectable
+    DUAL_GUN: 1,     // collectable
+    SHOT_GUN: 2,     // collectable
+    MINI_GUN: 3,     // collectable
+    ROCKET_GUN: 4,   // collectable
+    DUAL_MINIGUN: 5, // collectable
+    HEALTH: 6,       // collectable
+    TANK: 7,
+    ENEMY: 8,
 };
 
 var UpgradeTypes_e = {
     BASIC_GUN: 0,
-    SHOT_GUN: 1,
-    MINI_GUN: 2,
-    HEALTH: 3,
+    MINI_GUN: 1,
+    ROCKET_GUN: 2,   
+    DUAL_MINIGUN: 3, 
+    HEALTH: 4,
 };
 
 // Var with enum behavior to provide speed options for the help transition animation
@@ -486,15 +498,15 @@ shotBulletObj.prototype.draw = function(c) {
 
 var bulletObj = function(x, y, s) {
     this.position = new PVector(x, y);
-    this.w = 2;  // width
-    this.l = 12;  // length
+    this.w = 3;  // width
+    this.l = 8;  // length
     this.speed = new PVector(0, s);
     this.damage = 2;
     this.hit = 0;
 
     // These variables are to control the range that the bullet can go
     this.travelDistance = 0;
-    this.range = 100;
+    this.range = 90;  // originially 100
     this.outOfRange = false;
 };
 
@@ -507,10 +519,10 @@ bulletObj.prototype.draw = function(type) {
         if (type === 1) // type 1 signifies enemy bullets
         {
             fill(99, 0, 0);
-            rect(this.position.x - (this.w * 2) / 2, this.position.y + (3 / 2 * this.l), (this.w * 3), (1 / 2 * this.l));
+            rect(this.position.x - (this.w * 2) / 2, this.position.y + (3 / 2 * this.l), (this.w + 2), (this.l * 0.5));
             
             fill(252, 66, 53);
-            rect(this.position.x - (this.w * 2) / 2, this.position.y, (this.w * 3), (3 / 2 * this.l));
+            rect(this.position.x - (this.w * 2) / 2, this.position.y, (this.w + 2), (this.l * 1.5));
             //ellipse(this.position.x, this.position.y, (2 * this.w), (2 * this.w));
         }
         else // main character machine gun bullets
@@ -631,139 +643,6 @@ bulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
     }
 };
 
-shotBulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
-    if (level === GameState_e.FINAL_STAGE) {
-        var tile_height = BOSS_HEIGHT;
-        var tile_width = BOSS_WIDTH;
-        
-        // Set the x and y collision values
-        var within_x = this.pos1.x > round(GAME_INST.finalBoss.base_x) 
-            && this.pos1.x < round(GAME_INST.finalBoss.base_x) + tile_width;
-
-        var within_y = this.pos1.y > round(GAME_INST.finalBoss.base_y)
-            && this.pos1.y < round(GAME_INST.finalBoss.base_y) + GAME_INST.finalBoss.base_height;
-
-        // Check bullet 1 collision
-        if (within_x && within_y && !GAME_INST.finalBoss.defeated && this.hit1 !== 1) {  
-            GAME_INST.finalBoss.health -= this.damage;
-            if (GAME_INST.finalBoss.health < 1) {
-                GAME_INST.finalBoss.defeated = true;
-                GAME_INST.score++;
-            }
-            this.hit1 = 1;
-        }
-        
-        // update the x and y collision boolean values
-        within_x = this.pos2.x > round(GAME_INST.finalBoss.base_x) 
-            && this.pos2.x < round(GAME_INST.finalBoss.base_x) + tile_width;
-
-        within_y = this.pos2.y > round(GAME_INST.finalBoss.base_y)
-            && this.pos2.y < round(GAME_INST.finalBoss.base_y) + GAME_INST.finalBoss.base_height;
-
-        // Check bullet 2 collision
-        if (within_x && within_y && !GAME_INST.finalBoss.defeated && this.hit2 !== 1) {  
-            GAME_INST.finalBoss.health -= this.damage;
-            if (GAME_INST.finalBoss.health < 1) {
-                GAME_INST.finalBoss.defeated = true;
-                GAME_INST.score++;
-            }
-            this.hit2 = 1;
-        }
-        
-        // update the x and y collision boolean values
-        within_x = this.pos3.x > round(GAME_INST.finalBoss.base_x) 
-            && this.pos3.x < round(GAME_INST.finalBoss.base_x) + tile_width;
-        within_y = this.pos3.y > round(GAME_INST.finalBoss.base_y)
-            && this.pos3.y < round(GAME_INST.finalBoss.base_y) + GAME_INST.finalBoss.base_height;
-
-        // Check bullet 3 collision
-        if (within_x && within_y && !GAME_INST.finalBoss.defeated && this.hit3 !== 1) { 
-            GAME_INST.finalBoss.health -= this.damage;
-            if (GAME_INST.finalBoss.health < 1) {
-                GAME_INST.finalBoss.defeated = true;
-                GAME_INST.score++;
-            }
-            this.hit3 = 1;
-        }
-        return;
-    }
-    
-    for (var i = 0; i < enemyList.length; i++) {
-        var within_x = this.pos1.x > round(enemyList[i].position.x) && this.pos1.x < round(enemyList[i].position.x) + TILE_WIDTH;
-        var within_y = this.pos1.y > round(enemyList[i].position.y) - TILE_HEIGHT && this.pos1.y < round(enemyList[i].position.y) + TILE_HEIGHT;
-        
-        // Check bullet 1 collision
-        if (within_x && within_y && !enemyList[i].defeated && this.hit1 !== 1) {  
-            enemyList[i].health -= this.damage;
-            if (enemyList[i].health < 1) {
-                enemyList[i].defeated = true;
-                GAME_INST.score++;
-            }
-            this.hit1 = 1;
-        }
-        
-        // update the x and y collision boolean values
-        within_x = this.pos2.x > round(enemyList[i].position.x) && this.pos2.x < round(enemyList[i].position.x) + TILE_WIDTH;
-        within_y = this.pos2.y > round(enemyList[i].position.y) - TILE_HEIGHT && this.pos2.y < round(enemyList[i].position.y) + TILE_HEIGHT;
-        
-        // Check bullet 2 collision
-        if (within_x && within_y && !enemyList[i].defeated && this.hit2 !== 1) {  
-            enemyList[i].health -= this.damage;
-            if (enemyList[i].health < 1) {
-                enemyList[i].defeated = true;
-                GAME_INST.score++;
-            }
-            this.hit2 = 1;
-        }
-        
-        // update the x and y collision boolean values
-        within_x = this.pos3.x > round(enemyList[i].position.x) && this.pos3.x < round(enemyList[i].position.x) + TILE_WIDTH;
-        within_y = this.pos3.y > round(enemyList[i].position.y) - TILE_HEIGHT && this.pos3.y < round(enemyList[i].position.y) + TILE_HEIGHT;
-
-        // Check bullet 3 collision
-        if (within_x && within_y && !enemyList[i].defeated && this.hit3 !== 1) { 
-            enemyList[i].health -= this.damage;
-            if (enemyList[i].health < 1) {
-                enemyList[i].defeated = true;
-                GAME_INST.score++;
-            }
-            this.hit3 = 1;
-        }
-    }
-};
-
-shotBulletObj.prototype.TankCollsionCheck = function() {
-    // Check bullet stream 1
-    var within_x = round(this.pos1.x) > panzer.x && round(this.pos1.x) < panzer.x + TILE_WIDTH;
-    var within_y = round(this.pos1.y) > (panzer.y) && round(this.pos1.y) < panzer.y + TILE_HEIGHT;
-
-    if (within_x && within_y && (this.hit1 !== 1)) {
-        panzer.health -= this.damage;
-        this.hit1 = 1;
-        within_x = false;
-    }
-
-    // Check bullet stream 2
-    var within_x = round(this.pos2.x) > panzer.x && round(this.pos2.x) < panzer.x + TILE_WIDTH;
-    var within_y = round(this.pos2.y) > (panzer.y) && round(this.pos2.y) < panzer.y + TILE_HEIGHT;
-
-    if (within_x && within_y && (this.hit2 !== 1)) {
-        panzer.health -= this.damage;
-        this.hit2 = 1;
-        within_x = false;
-    }
-
-    // Check bullet stream 3
-    var within_x = round(this.pos3.x) > panzer.x && round(this.pos3.x) < panzer.x + TILE_WIDTH;
-    var within_y = round(this.pos3.y) > (panzer.y) && round(this.pos3.y) < panzer.y + TILE_HEIGHT;
-
-    if (within_x && within_y && (this.hit3 !== 1)) {
-        panzer.health -= this.damage;
-        this.hit3 = 1;
-        within_x = false;
-    }
-    return;
-}
 
 bulletObj.prototype.TankCollsionCheck = function() {
     var within_x = round(this.position.x) > GAME_INST.panzer.x && round(this.position.x) < GAME_INST.panzer.x + TILE_WIDTH;
@@ -857,7 +736,7 @@ tankShellObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
 var tankObj = function(x, y, s) {
     this.x = x;
     this.y = y;
-    this.speed = 3;
+    this.speed = 4;
     this.bullets = [];
     this.bulletSpeed = -6;
     this.fireRate = 8;
@@ -868,7 +747,8 @@ var tankObj = function(x, y, s) {
     this.rechargeTime = 300;
     this.objectType = ObjectType_e.TANK;
     this.miniGunEnabled = false;
-    this.shotGunEnabled = false;
+    this.rocketGunEnabled = false;
+    this.doubleGunEnabled = false;
 };
 
 tankObj.prototype.draw = function(frameCount, currentLevel) {
@@ -889,14 +769,14 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     
     // Boost logic
     if (DISABLE.SPACE === false && self.boostAvailable > 3) {  // Boost activated
-        self.speed = 5;
+        self.speed = 6;
         self.boostAvailable -= 4;  // Decrement the available boost left
         if (self.boostAvailable === 0) {
             self.rechargeNeeded = true;  // Boost needs to recharge after an amount of time
         }
     }
     else {  // Boost not activated
-        self.speed = 3;
+        self.speed = 4;
         if (self.boostAvailable < 400) {
             self.boostAvailable++;
         }
@@ -908,12 +788,12 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     }
     if (!DISABLE.UP || this.autoFireEnabled) {  // Fire the gun
         if (frameCount % this.fireRate === 0) {
-            if (!this.shotGunEnabled) {
+            if (!this.rocketGunEnabled) {
                 tank_fire.play();
                 this.bullets.push(new bulletObj(this.x + TILE_WIDTH / 2, this.y + TILE_HEIGHT / 6, this.bulletSpeed));
             }
             else {  // Shotgun enabled
-                this.bullets.push(new shotBulletObj(this.x + TILE_WIDTH / 2, this.y + TILE_HEIGHT / 6, this.bulletSpeed));
+                //this.bullets.push(new shotBulletObj(this.x + TILE_WIDTH / 2, this.y + TILE_HEIGHT / 6, this.bulletSpeed));
             }
             if (this.miniGunEnabled) {
                 this.fireRate = 4;
@@ -927,13 +807,16 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     
     // Animated tank track movement for the main character
     if (-frameCount % 15 < 5) { // 0 -> 3
-        image(Assets_t.PANZER1, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        panzer_ctx.drawImage(panzer_img, 0, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH * 0.82, TILE_HEIGHT * 0.82);
+        //image(Assets_t.PANZER1, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     }
     else if (-frameCount % 15 >= 5 && frameCount % 15 < 10) { // 4 -> 7
-        image(Assets_t.PANZER2, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        panzer_ctx.drawImage(panzer_img, 102, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH * 0.82, TILE_HEIGHT * 0.82);
+        //image(Assets_t.PANZER2, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     }
     else if (-frameCount % 15 >= 10 && frameCount % 15 < 15) { // 8 -> 11
-        image(Assets_t.PANZER3, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        panzer_ctx.drawImage(panzer_img, 204, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH * 0.82, TILE_HEIGHT * 0.82);
+        //image(Assets_t.PANZER3, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     }
 
     for (var i = 0; i < this.bullets.length; i++) {
@@ -962,7 +845,7 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
         }
 
         // Make sure to keep the array at a manageable iteration size so as to not bog down the game
-        if (this.bullets.length > 100) {
+        if (this.bullets.length > 40) {
             this.bullets.splice(0, 1);
         }
     }
@@ -1016,11 +899,11 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
     }
     self.y -= 1;
     if (DISABLE.SPACE === false && self.boostAvailable > 0 && self.boostAvailable > 3) {  // Boost activated
-        self.speed = 5;
+        self.speed = 6;
         self.boostAvailable -= 4;  // Decrement the available boost left
     }
     else {  // Boost not being used
-        self.speed = 3;
+        self.speed = 4;
         if (self.boostAvailable < 400) {
             self.boostAvailable++;
         }
@@ -1028,13 +911,16 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
 
     // Animated tank track movement for the main character
     if (-frameCount % 15 < 5) { // 0 -> 3
-        image(Assets_t.PANZER1, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        panzer_ctx.drawImage(panzer_img, 0, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH * 0.82, TILE_HEIGHT * 0.82);
+        // image(Assets_t.PANZER1, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     }
     else if (-frameCount % 15 >= 5 && -frameCount % 15 < 10 && frameCount % 15 < 10) { // 4 -> 7
-        image(Assets_t.PANZER2, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        panzer_ctx.drawImage(panzer_img, 102, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH * 0.82, TILE_HEIGHT * 0.82);
+        // image(Assets_t.PANZER2, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     }
     else if (-frameCount % 15 >= 10 && frameCount % 15 < 15) { // 8 -> 11
-        image(Assets_t.PANZER3, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        panzer_ctx.drawImage(panzer_img, 204, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH * 0.82, TILE_HEIGHT * 0.82);
+        // image(Assets_t.PANZER3, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     }
 
     // Aiming (rotation/translation) of the tank gun
@@ -1108,7 +994,7 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
         }
 
         // Make sure to keep the array at a manageable iteration size so as to not bog down the game
-        if (this.bullets.length > 100) {
+        if (this.bullets.length > 40) {
             this.bullets.splice(0, 1);
         }
     }
@@ -1139,7 +1025,7 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
         }
 
         // Make sure to keep the array at a manageable iteration size so as to not bog down the game
-        if (this.tankShells.length > 100) {
+        if (this.tankShells.length > 40) {
             this.tankShells.splice(0, 1);
         }
     }
@@ -1197,12 +1083,12 @@ var checkCollisionWithBoss = function(tank, enemyBoss) {
     }
 };
 
-var upgradedObj = function(x, y) {
+var upgradedObj = function(x, y, objectType) {
     this.x = x;
     this.y = y;
     this.movement = 0;
     this.collected = false;
-    this.objectType = ObjectType_e.BASIC_GUN;
+    this.objectType = objectType;  //ObjectType_e.BASIC_GUN;
 };
 
 upgradedObj.prototype.draw = function(m) {
@@ -1234,149 +1120,126 @@ upgradedObj.prototype.draw = function(m) {
     if (div >= waitTime * 7) {
         this.movement = -(amplititude / 2);
     }
-    image(
-        Assets_t.PANZER_GUN, 
-        this.x, 
-        this.y, 
-        TILE_WIDTH + this.movement * 3/2, 
-        TILE_HEIGHT * 3/2 + this.movement);
+    switch(this.objectType) {
+        case ObjectType_e.BASIC_GUN:
+            image(Assets_t.PANZER_GUN, this.x, this.y, TILE_WIDTH + this.movement * 3/2, TILE_HEIGHT * 3/2 + this.movement);
+            break;
+        case ObjectType_e.DUAL_GUN:
+            image(Assets_t.DUAL_GUN_PICKUP, this.x, this.y, TILE_WIDTH * 2 / 3 + this.movement, TILE_HEIGHT * 2 / 3 + this.movement);
+            break;
+        case ObjectType_e.ROCKET_GUN:
+            image(Assets_t.ROCKET_GUN_PICKUP, this.x, this.y, TILE_WIDTH * 2 / 3 + this.movement, TILE_HEIGHT * 2 / 3 + this.movement);
+            break;
+        case ObjectType_e.MINI_GUN:
+            image(Assets_t.MINI_GUN_PICKUP, this.x, this.y, TILE_WIDTH * 2 / 3 + this.movement, TILE_HEIGHT * 2 / 3 + this.movement);
+            break;
+        case ObjectType_e.DUAL_MINIGUN:
+            image(Assets_t.DUAL_MINIGUN_PICKUP, this.x, this.y, TILE_WIDTH * 2 / 3 + this.movement, TILE_HEIGHT * 2 / 3 + this.movement);
+            break;
+        case ObjectType_e.HEALTH:
+            image(Assets_t.HEALTH_PICKUP, this.x, this.y, TILE_WIDTH * 2 / 3 + this.movement, TILE_HEIGHT * 2 / 3 + this.movement);
+            break;
+    }  // end switch 
 };
 
-var healthPickUp = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.movement = 0;
-    this.collected = false;
-    this.objectType = ObjectType_e.HEALTH;
-};
+// var healthPickUp = function(x, y) {
+//     this.x = x;
+//     this.y = y;
+//     this.movement = 0;
+//     this.collected = false;
+//     this.objectType = ObjectType_e.HEALTH;
+// };
 
-healthPickUp.prototype.draw = function(m) {
-    var numIterations = 8;
-    var waitTime = 7;
-    var amplititude = 6;
-    var div = (m % (waitTime * numIterations)) * -1;
-    if (div >= 0 && div < waitTime) {
-        this.movement = -amplititude;
-    }
-    if (div >= waitTime && div < waitTime * 2) {
-        this.movement = -(amplititude / 2);
-    }
-    if (div >= waitTime * 2 && div < waitTime * 3) {
-        this.movement = 0;
-    }
-    if (div >= waitTime * 3 && div < waitTime * 4) {
-        this.movement = amplititude / 2;
-    }
-    if (div >= waitTime * 4 && div < waitTime * 5) {
-        this.movement = amplititude;
-    }
-    if (div >= waitTime * 5 && div < waitTime * 6) {
-        this.movement = amplititude / 2;
-    }
-    if (div >= waitTime * 6 && div < waitTime * 7) {
-        this.movement = 0;
-    }
-    if (div >= waitTime * 7) {
-        this.movement = -(amplititude / 2);
-    }
-    // Draw the health image pickup
-    image(
-        Assets_t.HEALTH_PICKUP, 
-        this.x, 
-        this.y, 
-        TILE_WIDTH * 2 / 3 + this.movement, 
-        TILE_HEIGHT * 2 / 3 + this.movement);
-};
+// healthPickUp.prototype.draw = function(m) {
+//     var numIterations = 8;
+//     var waitTime = 7;
+//     var amplititude = 6;
+//     var div = (m % (waitTime * numIterations)) * -1;
+//     if (div >= 0 && div < waitTime) {
+//         this.movement = -amplititude;
+//     }
+//     if (div >= waitTime && div < waitTime * 2) {
+//         this.movement = -(amplititude / 2);
+//     }
+//     if (div >= waitTime * 2 && div < waitTime * 3) {
+//         this.movement = 0;
+//     }
+//     if (div >= waitTime * 3 && div < waitTime * 4) {
+//         this.movement = amplititude / 2;
+//     }
+//     if (div >= waitTime * 4 && div < waitTime * 5) {
+//         this.movement = amplititude;
+//     }
+//     if (div >= waitTime * 5 && div < waitTime * 6) {
+//         this.movement = amplititude / 2;
+//     }
+//     if (div >= waitTime * 6 && div < waitTime * 7) {
+//         this.movement = 0;
+//     }
+//     if (div >= waitTime * 7) {
+//         this.movement = -(amplititude / 2);
+//     }
+//     // Draw the health image pickup
+//     image(
+//         Assets_t.HEALTH_PICKUP, 
+//         this.x, 
+//         this.y, 
+//         TILE_WIDTH * 2 / 3 + this.movement, 
+//         TILE_HEIGHT * 2 / 3 + this.movement);
+// };
 
-var shotGunPickUp = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.movement = 0;
-    this.collected = false;
-    this.objectType = ObjectType_e.SHOT_GUN;
-};
+// var rocketGunPickUp = function(x, y) {
+//     this.x = x;
+//     this.y = y;
+//     this.movement = 0;
+//     this.collected = false;
+//     this.objectType = ObjectType_e.MINI_GUN;
+// };
 
-shotGunPickUp.prototype.draw = function(m) {
-    var numIterations = 8;
-    var waitTime = 7;
-    var amplititude = 6;
-    var div = (m % (waitTime * numIterations)) * -1;
-    if (div >= 0 && div < waitTime) {
-        this.movement = -amplititude;
-    }
-    if (div >= waitTime && div < waitTime * 2) {
-        this.movement = -(amplititude / 2);
-    }
-    if (div >= waitTime * 2 && div < waitTime * 3) {
-        this.movement = 0;
-    }
-    if (div >= waitTime * 3 && div < waitTime * 4) {
-        this.movement = amplititude / 2;
-    }
-    if (div >= waitTime * 4 && div < waitTime * 5) {
-        this.movement = amplititude;
-    }
-    if (div >= waitTime * 5 && div < waitTime * 6) {
-        this.movement = amplititude / 2;
-    }
-    if (div >= waitTime * 6 && div < waitTime * 7) {
-        this.movement = 0;
-    }
-    if (div >= waitTime * 7) {
-        this.movement = -(amplititude / 2);
-    }
-    image(
-        Assets_t.SHOT_GUN_PICKUP, 
-        this.x, 
-        this.y, 
-        TILE_WIDTH * 2 / 3 + this.movement, 
-        TILE_HEIGHT * 2 / 3 + this.movement);
-};
+// var miniGunPickUp = function(x, y) {
+//     this.x = x;
+//     this.y = y;
+//     this.movement = 0;
+//     this.collected = false;
+//     this.objectType = ObjectType_e.MINI_GUN;
+// };
 
-var miniGunPickUp = function(x, y) {
-    this.x = x;
-    this.y = y;
-    this.movement = 0;
-    this.collected = false;
-    this.objectType = ObjectType_e.MINI_GUN;
-};
-
-miniGunPickUp.prototype.draw = function(m) {
-    var numIterations = 8;
-    var waitTime = 7;
-    var amplititude = 6;
-    var div = (m % (waitTime * numIterations)) * -1;
-    if (div >= 0 && div < waitTime) {
-        this.movement = -amplititude;
-    }
-    if (div >= waitTime && div < waitTime * 2) {
-        this.movement = -(amplititude / 2);
-    }
-    if (div >= waitTime * 2 && div < waitTime * 3) {
-        this.movement = 0;
-    }
-    if (div >= waitTime * 3 && div < waitTime * 4) {
-        this.movement = amplititude / 2;
-    }
-    if (div >= waitTime * 4 && div < waitTime * 5) {
-        this.movement = amplititude;
-    }
-    if (div >= waitTime * 5 && div < waitTime * 6) {
-        this.movement = amplititude / 2;
-    }
-    if (div >= waitTime * 6 && div < waitTime * 7) {
-        this.movement = 0;
-    }
-    if (div >= waitTime * 7) {
-        this.movement = -(amplititude / 2);
-    }
-    image(
-        Assets_t.MINI_GUN_PICKUP, 
-        this.x, 
-        this.y, 
-        TILE_WIDTH * 2 / 3 + this.movement, 
-        TILE_HEIGHT * 2 / 3 + this.movement);
-};
+// miniGunPickUp.prototype.draw = function(m) {
+//     var numIterations = 8;
+//     var waitTime = 7;
+//     var amplititude = 6;
+//     var div = (m % (waitTime * numIterations)) * -1;
+//     if (div >= 0 && div < waitTime) {
+//         this.movement = -amplititude;
+//     }
+//     if (div >= waitTime && div < waitTime * 2) {
+//         this.movement = -(amplititude / 2);
+//     }
+//     if (div >= waitTime * 2 && div < waitTime * 3) {
+//         this.movement = 0;
+//     }
+//     if (div >= waitTime * 3 && div < waitTime * 4) {
+//         this.movement = amplititude / 2;
+//     }
+//     if (div >= waitTime * 4 && div < waitTime * 5) {
+//         this.movement = amplititude;
+//     }
+//     if (div >= waitTime * 5 && div < waitTime * 6) {
+//         this.movement = amplititude / 2;
+//     }
+//     if (div >= waitTime * 6 && div < waitTime * 7) {
+//         this.movement = 0;
+//     }
+//     if (div >= waitTime * 7) {
+//         this.movement = -(amplititude / 2);
+//     }
+//     image(
+//         Assets_t.MINI_GUN_PICKUP, 
+//         this.x, 
+//         this.y, 
+//         TILE_WIDTH * 2 / 3 + this.movement, 
+//         TILE_HEIGHT * 2 / 3 + this.movement);
+// };
 
 var enemy1Obj = function(x, y) {
     this.position = new PVector(x, y);
@@ -1423,10 +1286,6 @@ enemy1Obj.prototype.wander = function() {
     else if (this.position.x <= (TILE_WIDTH / 2)) {this.position.x = (TILE_WIDTH / 2);}
     if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
     else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
-    // if (this.position.x > 802) {this.position.x = -2;}
-    // else if (this.position.x < -2) {this.position.x = 802;}
-    // if (this.position.y > (oldY + 30)) {this.position.y = (oldY - 30);}
-    // else if (this.position.y < (oldY - 30)) {this.position.y = (oldY + 30);}
 };
 
 var enemy2Obj = function(x, y, s) {
@@ -1452,7 +1311,7 @@ enemy2Obj.prototype.draw = function() {
         image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3 / 4, TILE_WIDTH, TILE_HEIGHT);
 
         // add bullet to bullet list
-        if (loopCount % 200 === 0) {
+        if (loopCount % 90 === 0) {
             this.bullets.push(new bulletObj(this.position.x + TILE_WIDTH * 2 / 3 , this.position.y + TILE_HEIGHT, 6));
         }
 
@@ -1580,8 +1439,8 @@ enemy4Obj.prototype.draw = function() {
 
 enemy4Obj.prototype.wander = function() {
     var temp = (GAME_INST.panzer.y+loopCount - SCREEN_HEIGHT * 1 / 20);
-    if (dist(panzer.x, temp, this.position.x, this.position.y) > 5) {
-        this.step.set((panzer.x - this.position.x), temp - this.position.y);
+    if (dist(GAME_INST.panzer.x, temp, this.position.x, this.position.y) > 5) {
+        this.step.set((GAME_INST.panzer.x - this.position.x), temp - this.position.y);
         this.step.normalize();
         // this.step.mult(2);
         this.position.add(this.step);
@@ -1651,7 +1510,7 @@ bossEnemy.prototype.draw = function() {
         fill(50, 230, 50);
         rect(this.position.x, MAP_OFFSET + this.position.y, 200, 10);
         fill(240, 30, 30);
-        rect(this.position.x - this.health / 2, MAP_OFFSET + this.position.y, 200 - panzer.health / 2, 10);
+        rect(this.position.x - this.health / 2, MAP_OFFSET + this.position.y, 200 - GAME_INST.panzer.health / 2, 10);
         noStroke();
 
         if (this.rechargeCount <= 0) {
@@ -2222,28 +2081,31 @@ gameObj.prototype.initialize = function() {
         for (var j = 0; j < this.tilemap[i].length; j++) {
             switch (this.tilemap[i][j]) {
                 case 'a':
-                    this.enemyObjects.push(new enemy1Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.enemyObjects.push(new enemy1Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // a = enemy 1
                     break;
                 case 'b':
-                    this.enemyObjects.push(new enemy2Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.enemyObjects.push(new enemy2Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // b = enemy 2
                     break;
                 case 'c':
-                    this.enemyObjects.push(new enemy3Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.enemyObjects.push(new enemy3Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // c = enemy 3
                     break;
                 case 'd':
-                    this.enemyObjects.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.enemyObjects.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // d = enemy 4
                     break;
                 case 'y':
-                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.BASIC_GUN));  
                     break;
                 case 'm':
-                    this.gameObjects.push(new miniGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.MINI_GUN));
                     break;
-                case 's':
-                    this.gameObjects.push(new shotGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+                case 'r':
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.ROCKET_GUN));
+                    break;
+                case 'u':
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.DUAL_MINIGUN));
                     break;
                 case 'h':
-                    this.gameObjects.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.HEALTH));
                     break;
                 case 'z':
                     this.finalBoss = new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT);
@@ -2308,16 +2170,20 @@ gameObj.prototype.initialize = function() {
                     this.enemyObjects3.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
                     break;
                 case 'y':
-                    this.gameObjects3.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.BASIC_GUN));  
                     break;
                 case 'm':
-                    this.gameObjects3.push(new miniGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.MINI_GUN));
                     break;
-                case 's':
-                    this.gameObjects3.push(new shotGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+                case 'r':
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.ROCKET_GUN));
+                    break;
+                case 'u':
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.DUAL_MINIGUN));
                     break;
                 case 'h':
-                    this.gameObjects3.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.HEALTH));
+                    // this.gameObjects3.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
                     break;
                 case 'z':
                     this.finalBoss = new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT);
@@ -2382,16 +2248,20 @@ gameObj.prototype.initialize = function() {
                     this.enemyObjects5.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));
                     break;
                 case 'y':
-                    this.gameObjects5.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.BASIC_GUN));  
                     break;
                 case 'm':
-                    this.gameObjects5.push(new miniGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.MINI_GUN));
                     break;
-                case 's':
-                    this.gameObjects5.push(new shotGunPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+                case 'r':
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.ROCKET_GUN));
+                    break;
+                case 'u':
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.DUAL_MINIGUN));
                     break;
                 case 'h':
-                    this.gameObjects5.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.HEALTH));
+                    // this.gameObjects5.push(new healthPickUp(j * TILE_WIDTH, i * TILE_HEIGHT));
                     break;
                 case 'z':
                     this.finalBoss = new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT);
@@ -2441,8 +2311,8 @@ gameObj.prototype.initialize = function() {
 
     this.finalBoss = new bossEnemy( (SCREEN_WIDTH / 4), 44 * TILE_HEIGHT);
     this.finalHealthPickups = [
-        new healthPickUp((SCREEN_WIDTH / 4), 48 * TILE_HEIGHT),
-        new healthPickUp((SCREEN_WIDTH * 3 /4), 48 * TILE_HEIGHT),
+        new upgradedObj((SCREEN_WIDTH / 4), 48 * TILE_HEIGHT, ObjectType_e.HEALTH),
+        new upgradedObj((SCREEN_WIDTH * 3 /4), 48 * TILE_HEIGHT, ObjectType_e.HEALTH),
     ]
     // this.panzer = createTank(
     //     SCREEN_WIDTH / 2 - TILE_WIDTH / 2, 
@@ -2465,7 +2335,7 @@ gameObj.prototype.drawLevelOne = function(y, loopIteration) {
     image(GameScreens_t.LEVEL_ONE, this.xCoor, this.yCoor);
     if (loopIteration === 0) {  // First iteration
         for (var i = 0; i < GAME_INST.enemyObjects.length; i++) { // enemy objects
-            GAME_INST.enemyObjects[i].draw(GAME_INST.panzer);  // TODO
+            GAME_INST.enemyObjects[i].draw(GAME_INST.panzer);  
             GAME_INST.enemyObjects[i].wander();
         }
         for (var i = 0; i < GAME_INST.gameObjects.length; i++) { // collectable objects
@@ -2476,7 +2346,7 @@ gameObj.prototype.drawLevelOne = function(y, loopIteration) {
     }
     else if (loopIteration === 1) {  // Second iteration
         for (var i = 0; i < GAME_INST.enemyObjects2.length; i++) { // enemy objects
-            GAME_INST.enemyObjects2[i].draw(GAME_INST.panzer); // TODO
+            GAME_INST.enemyObjects2[i].draw(GAME_INST.panzer); 
             GAME_INST.enemyObjects2[i].wander();
         }
         for (var i = 0; i < GAME_INST.gameObjects2.length; i++) { // collectable objects
@@ -2826,12 +2696,13 @@ GAME_INST.initialize();
 // and other necessary tasks
 var tankSpeed = 3;
 var loopCount = -MAP_OFFSET;
-// var panzer = createTank(
+
 GAME_INST.panzer = createTank(
     SCREEN_WIDTH / 2 - TILE_WIDTH / 2, 
     -loopCount + SCREEN_HEIGHT * 2 / 3, 
     tankSpeed, 
     TankOptions_e.BASIC);
+
 var upgradeCollected = false;
 var tankUpgraded = false;
 var animationFinished = false;
@@ -2964,8 +2835,7 @@ var draw = function() {
             // Draw the heads up display
             drawHUD();
             
-            // 1st wave of enemies contained in the first tilemap defined in 
-            // the game object
+            // 1st wave of enemies contained in the first tilemap defined in the game object
             if (loopIterations === 0) {  
                 checkCollisionWithEnemies(GAME_INST.panzer, GAME_INST.enemyObjects);
             }
@@ -2999,6 +2869,9 @@ var draw = function() {
                 //panzer.rechargeTime = rechargeTime;
                 //panzer.rechargeNeeded = rechargeNeeded;
                 tankUpgraded = true;  // Control variable to ensure only 1x execution of this logical block
+            }
+            else if (upgradeCollected === ObjectType_e.DUAL_GUN) {
+
             }
 
             // Case: Health collected
@@ -3059,14 +2932,12 @@ var draw = function() {
             // if (loopIterations === 2) {  
             //     // loopCount = -MAP_HEIGHT;
             //     // loopIterations = 0;
-                
             // }
             
             // Draw the heads up display
             drawHUD();
             
-            // 1st wave of enemies contained in the first tilemap defined in 
-            // the game object
+            // 1st wave of enemies contained in the first tilemap defined in the game object
             if (loopIterations === 0) {  
                 checkCollisionWithEnemies(GAME_INST.panzer, GAME_INST.enemyObjects3);
             }
@@ -3153,14 +3024,12 @@ var draw = function() {
             // if (loopIterations === 2) {  
             //     // loopCount = -MAP_HEIGHT;
             //     // loopIterations = 0;
-                
             // }
             
             // Draw the heads up display
             drawHUD();
             
-            // 1st wave of enemies contained in the first tilemap defined in 
-            // the game object
+            // 1st wave of enemies contained in the first tilemap defined in the game object
             if (loopIterations === 0) {  
                 checkCollisionWithEnemies(GAME_INST.panzer, GAME_INST.enemyObjects5);
             }
