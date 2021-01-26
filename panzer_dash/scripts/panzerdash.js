@@ -177,7 +177,8 @@ var GameState_e = {
     ANIMATED_HELP_TRANSITION: 11,
     ANIMATED_MENU_TRANSITION: 12, 
     FINAL_STAGE: 13,
-    DEFAULT: 14,
+    SHOP: 14,
+    DEFAULT: 15,
 };
 
 // Created a struct like variable to store the different game screens
@@ -239,6 +240,12 @@ var GameScreens_t = {
     LEVEL_ONE:               loadImage('../assets/map_levels/level_one_bg.jpg'),
     LEVEL_TWO:               loadImage('../assets/map_levels/level_two_bg.jpg'),
     LEVEL_THREE:             loadImage('../assets/map_levels/level_three_bg.jpg'),
+    SELECT_MARKER:           loadImage('../assets/menu_screens/start_select.png'),
+    HELP_SELECT_MARKER:      loadImage('../assets/help_screens/help_select_marker.png'),
+    SHOP_SCREEN:             loadImage('../assets/shop_screens/shop_menu.jpg'),
+    SHOP_HOVER:              loadImage('../assets/shop_screens/shop_hover.png'),
+    SHOP_SELECTED:           loadImage('../assets/shop_screens/shop_selected.png'),
+    SHOP_CONTINUE:           loadImage('../assets/shop_screens/shop_continue.png'),
 };
 
 // Load other assets in this 'struct'
@@ -275,16 +282,19 @@ var Assets_t = {
     HUD:        loadImage('../assets/HUD/hud.png'),
     HUD_NEEDLE: loadImage('../assets/HUD/needle.png'),
     
-    BOOM: [
-        loadImage('../assets/explosions/boom1.png'),
-        loadImage('../assets/explosions/boom2.png'),
-        loadImage('../assets/explosions/boom3.png'),
-        loadImage('../assets/explosions/boom4.png'),
-        loadImage('../assets/explosions/boom5.png'),
-        loadImage('../assets/explosions/boom6.png'),
-        loadImage('../assets/explosions/boom7.png'),
-        loadImage('../assets/explosions/boom8.png'),
-    ],
+    // BOOM: [
+    //     loadImage('../assets/explosions/boom1.png'),
+    //     loadImage('../assets/explosions/boom2.png'),
+    //     loadImage('../assets/explosions/boom3.png'),
+    //     loadImage('../assets/explosions/boom4.png'),
+    //     loadImage('../assets/explosions/boom5.png'),
+    //     loadImage('../assets/explosions/boom6.png'),
+    //     loadImage('../assets/explosions/boom7.png'),
+    //     loadImage('../assets/explosions/boom8.png'),
+    // ],
+
+    BOOM:   document.getElementById("boom_sprite"),
+    BOOM2:  document.getElementById("boom_sprite_2"),
 
     TSHELL: loadImage('../assets/munition/T_Shell.png'),
 };
@@ -301,6 +311,7 @@ var tank_fire = document.getElementById("tankFire");//.loop = true;
 
 var canvas = document.getElementById("mycanvas");
 var panzer_img = document.getElementById("panzer_sprite_sheet");
+var panzer_boost_img = document.getElementById("panzer_boosted_sprite_sheet");
 var mine = document.getElementById("enemy_mine");
 var ctx = canvas.getContext("2d");
 
@@ -524,7 +535,6 @@ bulletObj.prototype.draw = function(type) {
             
             fill(252, 66, 53);
             rect(this.position.x - (this.w * 2) / 2, this.position.y, (this.w + 2), (this.l * 1.5));
-            //ellipse(this.position.x, this.position.y, (2 * this.w), (2 * this.w));
         }
         else // main character machine gun bullets
         {
@@ -541,6 +551,8 @@ bulletObj.prototype.draw = function(type) {
     this.travelDistance += 1;
 };
 
+
+
 /*
  * Pass in a loop counter to track how many loop passes have been made
  */
@@ -548,64 +560,62 @@ var explodeLength = 7;
 var explodeFrames = 8;
 var scaleFactor = 1.5;
 // var offsetFactor = 10;
-var explode1 = function(explodeCount, x, y) {
+var explode1 = function(explodeCount, x, y) {  // 8 frame explosion draw function
     explosion_1_sound.play();
     if (explodeCount < explodeLength) {  // frame 1 
-        image(Assets_t.BOOM[0], x, y, TILE_WIDTH, TILE_HEIGHT);
+        // image(Assets_t.BOOM[0], x, y, TILE_WIDTH, TILE_HEIGHT);
+        ctx.drawImage(Assets_t.BOOM, 0, 0, 200, 200, x-35, y, 120, 120);
     }
     else if (explodeCount >= explodeLength * 1 && explodeCount < explodeLength * 2) {  // frame 2
-        image(Assets_t.BOOM[1], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        // image(Assets_t.BOOM[1], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        ctx.drawImage(Assets_t.BOOM, 200, 0, 200, 200, x-35, y, 120, 120);
     }
     else if (explodeCount >= explodeLength * 2 && explodeCount < explodeLength * 3) {
-        image(Assets_t.BOOM[2], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        // image(Assets_t.BOOM[2], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        ctx.drawImage(Assets_t.BOOM, 400, 0, 200, 200, x-35, y, 120, 120);
     }
     else if (explodeCount >= explodeLength * 3 && explodeCount < explodeLength * 4) {
-        image(Assets_t.BOOM[3], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        // image(Assets_t.BOOM[3], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        ctx.drawImage(Assets_t.BOOM, 600, 0, 200, 200, x-35, y, 120, 120);
     }
     else if (explodeCount >= explodeLength * 4 && explodeCount < explodeLength * 5) {
-        image(Assets_t.BOOM[4], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-        // image(Assets_t.BOOM[0], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        // image(Assets_t.BOOM[4], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        ctx.drawImage(Assets_t.BOOM, 0, 200, 200, 200, x-35, y, 120, 120);
     }
     else if (explodeCount >= explodeLength * 5 && explodeCount < explodeLength * 6) {
-        image(Assets_t.BOOM[5], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-        // image(Assets_t.BOOM[1], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        // image(Assets_t.BOOM[5], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        ctx.drawImage(Assets_t.BOOM, 200, 200, 200, 200, x-35, y, 120, 120);
     }
     else if (explodeCount >= explodeLength * 6 && explodeCount < explodeLength * 7) {
-        image(Assets_t.BOOM[6], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-        // image(Assets_t.BOOM[2], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        // image(Assets_t.BOOM[6], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        ctx.drawImage(Assets_t.BOOM, 400, 200, 200, 200, x-35, y, 120, 120);
     }
     else if (explodeCount >= explodeLength * 7 && explodeCount < explodeLength * 8) {  // frame 8
-        image(Assets_t.BOOM[7], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-        // image(Assets_t.BOOM[3], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        // image(Assets_t.BOOM[7], x, y, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
+        ctx.drawImage(Assets_t.BOOM, 800, 200, 200, 200, x-35, y, 120, 120);
     }
-    // else if (explodeCount >= explodeLength * 8 && explodeCount < explodeLength * 9) {  
-    //     image(Assets_t.BOOM[4], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    //     image(Assets_t.BOOM[0], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    // }
-    // else if (explodeCount >= explodeLength * 9 && explodeCount < explodeLength * 10) {  
-    //     image(Assets_t.BOOM[5], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    //     image(Assets_t.BOOM[1], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    // }
-    // else if (explodeCount >= explodeLength * 10 && explodeCount < explodeLength * 11) {  
-    //     image(Assets_t.BOOM[6], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    //     image(Assets_t.BOOM[2], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    // }
-    // else if (explodeCount >= explodeLength * 11 && explodeCount < explodeLength * 12) {  
-    //     image(Assets_t.BOOM[7], x, y - offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    //     image(Assets_t.BOOM[3], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    // }
-    // else if (explodeCount >= explodeLength * 12 && explodeCount < explodeLength * 13) {  
-    //     image(Assets_t.BOOM[4], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    // }
-    // else if (explodeCount >= explodeLength * 13 && explodeCount < explodeLength * 14) {  
-    //     image(Assets_t.BOOM[5], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    // }
-    // else if (explodeCount >= explodeLength * 14 && explodeCount < explodeLength * 15) {  
-    //     image(Assets_t.BOOM[6], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    // }
-    // else if (explodeCount >= explodeLength * 15 && explodeCount < explodeLength * 16) {  
-    //     image(Assets_t.BOOM[7], x, y + offsetFactor, TILE_WIDTH * scaleFactor, TILE_HEIGHT * scaleFactor);
-    // }
+};
+
+var explode2 = function(explodeCount, x, y) {  // 6 frame explosion draw function 
+    explosion_1_sound.play();
+    if (explodeCount < explodeLength) {  // frame 1 
+        ctx.drawImage(Assets_t.BOOM2, 0, 0, 200, 200, x-35, y-5, 160, 160);
+    }
+    else if (explodeCount >= explodeLength * 1 && explodeCount < explodeLength * 2) {  // frame 2
+        ctx.drawImage(Assets_t.BOOM2, 200, 0, 200, 200, x-35, y-5, 160, 160);
+    }
+    else if (explodeCount >= explodeLength * 2 && explodeCount < explodeLength * 3) {
+        ctx.drawImage(Assets_t.BOOM2, 400, 0, 200, 200, x-35, y-5, 160, 160);
+    }
+    else if (explodeCount >= explodeLength * 3 && explodeCount < explodeLength * 4) {
+        ctx.drawImage(Assets_t.BOOM2, 0, 200, 200, 200, x-35, y-5, 160, 160);
+    }
+    else if (explodeCount >= explodeLength * 4 && explodeCount < explodeLength * 5) {
+        ctx.drawImage(Assets_t.BOOM2, 200, 200, 200, 200, x-35, y-5, 160, 160);
+    }
+    else if (explodeCount >= explodeLength * 5 && explodeCount < explodeLength * 6) {
+        ctx.drawImage(Assets_t.BOOM2, 400, 200, 200, 200, x-35, y-5, 160, 160);
+    }
 };
 
 bulletObj.prototype.EnemyCollisionCheck = function(enemyList, level) {
@@ -672,10 +682,6 @@ var tankShellObj = function(x, y, s, gunAngle) {
 tankShellObj.prototype.draw = function(gunAngle) {
     if (this.hit === 0) {
         // Draw the actual tank shell
-        // fill(240, 20, 20);
-        // ellipse(this.position.x, this.position.y, this.l / 2, this.l / 2);
-        // fill(40, 40, 40);
-        // ellipse(this.position.x, this.position.y, this.l, this.l);
         pushMatrix();
         if (this.position.x === this.start_x && this.position.y === this.start_y) {
             this.angle = gunAngle;
@@ -754,6 +760,7 @@ var tankObj = function(x, y, s) {
     this.miniGunEnabled = false;
     this.rocketGunEnabled = false;
     this.doubleGunEnabled = false;
+    this.boostUsed = false;
 };
 
 tankObj.prototype.draw = function(frameCount, currentLevel) {
@@ -773,17 +780,42 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
     }
     
     // Boost logic
-    if (DISABLE.SPACE === false && self.boostAvailable > 3) {  // Boost activated
+    if (DISABLE.SPACE === false && self.boostAvailable > 3 && !self.boostUsed) {  // Boost activated
         self.speed = 6;
         self.boostAvailable -= 4;  // Decrement the available boost left
         if (self.boostAvailable === 0) {
             self.rechargeNeeded = true;  // Boost needs to recharge after an amount of time
         }
+        if (-frameCount % 15 < 5) { // 0 -> 3
+            ctx.drawImage(panzer_boost_img, 0, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        }
+        else if (-frameCount % 15 >= 5 && frameCount % 15 < 10) { // 4 -> 7
+            ctx.drawImage(panzer_boost_img, 102, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        }
+        else if (-frameCount % 15 >= 10 && frameCount % 15 < 15) { // 8 -> 11
+            ctx.drawImage(panzer_boost_img, 204, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        }
     }
     else {  // Boost not activated
         self.speed = 4;
+        if (self.boostAvailable <= 3) {
+            self.boostUsed = true;
+        }
         if (self.boostAvailable < 400) {
             self.boostAvailable++;
+            if (self.boostAvailable > 50) {
+                self.boostUsed = false;
+            }
+        }
+        // Animated tank track movement for the main character
+        if (-frameCount % 15 < 5) { // 0 -> 3
+            ctx.drawImage(panzer_img, 0, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        }
+        else if (-frameCount % 15 >= 5 && frameCount % 15 < 10) { // 4 -> 7
+            ctx.drawImage(panzer_img, 102, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        }
+        else if (-frameCount % 15 >= 10 && frameCount % 15 < 15) { // 8 -> 11
+            ctx.drawImage(panzer_img, 204, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
         }
     }
 
@@ -808,20 +840,6 @@ tankObj.prototype.draw = function(frameCount, currentLevel) {
 
     if (frameCount % 5 === 0) { // TODO: Better implementation of the autofire delayed needed
         this.autoFireToggled = false;
-    }
-    
-    // Animated tank track movement for the main character
-    if (-frameCount % 15 < 5) { // 0 -> 3
-        ctx.drawImage(panzer_img, 0, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
-        //image(Assets_t.PANZER1, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
-    }
-    else if (-frameCount % 15 >= 5 && frameCount % 15 < 10) { // 4 -> 7
-        ctx.drawImage(panzer_img, 102, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
-        //image(Assets_t.PANZER2, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
-    }
-    else if (-frameCount % 15 >= 10 && frameCount % 15 < 15) { // 8 -> 11
-        ctx.drawImage(panzer_img, 204, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
-        //image(Assets_t.PANZER3, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
     }
 
     for (var i = 0; i < this.bullets.length; i++) {
@@ -886,6 +904,7 @@ var tankUpgradedObj = function(x, y, s) {
     this.health = 100;
     this.miniGunEnabled = false;
     this.shotGunEnabled = false;
+    this.boostUsed = false;
 };
 
 tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
@@ -903,28 +922,44 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
         self.x -= self.speed;
     }
     self.y -= 1;
-    if (DISABLE.SPACE === false && self.boostAvailable > 0 && self.boostAvailable > 3) {  // Boost activated
+    if (DISABLE.SPACE === false && self.boostAvailable > 3 && !self.boostUsed) {  // Boost activated
         self.speed = 6;
         self.boostAvailable -= 4;  // Decrement the available boost left
+
+        if (-frameCount % 15 < 5) { // 0 -> 3
+            ctx.drawImage(panzer_boost_img, 0, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        }
+        else if (-frameCount % 15 >= 5 && frameCount % 15 < 10) { // 4 -> 7
+            ctx.drawImage(panzer_boost_img, 102, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        }
+        else if (-frameCount % 15 >= 10 && frameCount % 15 < 15) { // 8 -> 11
+            ctx.drawImage(panzer_boost_img, 204, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        }
     }
     else {  // Boost not being used
         self.speed = 4;
+        if (self.boostAvailable <= 50) {
+            self.boostUsed = true;
+        }
         if (self.boostAvailable < 400) {
             self.boostAvailable++;
+            if (self.boostAvailable > 50) {
+                self.boostUsed = false;
+            }
+        }
+        // Animated tank track movement for the main character
+        if (-frameCount % 15 < 5) { // 0 -> 3
+            ctx.drawImage(panzer_img, 0, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        }
+        else if (-frameCount % 15 >= 5 && -frameCount % 15 < 10 && frameCount % 15 < 10) { // 4 -> 7
+            ctx.drawImage(panzer_img, 102, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
+        }
+        else if (-frameCount % 15 >= 10 && frameCount % 15 < 15) { // 8 -> 11
+            ctx.drawImage(panzer_img, 204, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
         }
     }
 
-    // Animated tank track movement for the main character
-    if (-frameCount % 15 < 5) { // 0 -> 3
-        ctx.drawImage(panzer_img, 0, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
-        // image(Assets_t.PANZER1, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
-    }
-    else if (-frameCount % 15 >= 5 && -frameCount % 15 < 10 && frameCount % 15 < 10) { // 4 -> 7
-        ctx.drawImage(panzer_img, 102, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
-    }
-    else if (-frameCount % 15 >= 10 && frameCount % 15 < 15) { // 8 -> 11
-        ctx.drawImage(panzer_img, 204, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
-    }
+
 
     // Aiming (rotation/translation) of the tank gun
     if (!DISABLE.LEFT) {
@@ -1047,6 +1082,18 @@ var checkCollisionWithUpgrade = function(tank, collectableObjects) {
         if (within_x && within_y && !collectableObjects[i].collected) {  // Check that object has not already been collected
             collectableObjects[i].collected = true;
             return collectableObjects[i].objectType;
+        }
+    }
+};
+
+var checkCollisionWithSpawnObjects = function() {
+    for (var i = 0; i < GAME_INST.spawnObjects.length; i++) {
+        // print("panzer.x = " + GAME_INST.panzer.x + " | panzer.y = " + GAME_INST.panzer.y + " | pos.x = " + GAME_INST.spawnObjects[i].position.x + " | pos.y" + GAME_INST.spawnObjects[i].position.y)
+        var within_x = GAME_INST.panzer.x > round(GAME_INST.spawnObjects[i].position.x) - TILE_WIDTH && GAME_INST.panzer.x < round(GAME_INST.spawnObjects[i].position.x) + TILE_WIDTH;
+        var within_y = GAME_INST.panzer.y > round(GAME_INST.spawnObjects[i].position.y) - TILE_HEIGHT && GAME_INST.panzer.y < round(GAME_INST.spawnObjects[i].position.y) + TILE_HEIGHT;
+        if (within_x && within_y && GAME_INST.spawnObjects[i].exploded && !GAME_INST.spawnObjects[i].damageDone) {  
+            GAME_INST.spawnObjects[i].damageDone = true;
+            GAME_INST.panzer.health -= 25;
         }
     }
 };
@@ -1208,16 +1255,23 @@ var mineObj = function(x, y) {
     this.position = new PVector(x, y);
     this.dcount = 0;
     this.timeLeft = random(140,300);  // will be based on loop count
+    this.damageDone = false;
+    this.explosionFinished = false;
 };
 
 mineObj.prototype.draw = function() {
     if (!this.defeated) {
-        ctx.drawImage(mine, this.position.x, this.position.y, TILE_WIDTH / 2, TILE_HEIGHT / 2);
+        ctx.drawImage(mine, this.position.x, this.position.y, 40, 40);
     }
-    if (this.timeLeft <= 0) {  // mine should explode when time runs out
-        explode1(this.dcount, this.position.x, this.position.y);
-        this.dcount++;
+    if (this.timeLeft <= 0 && !this.explosionFinished) {  // mine should explode when time runs out
         this.defeated = true;
+        explode2(this.dcount, this.position.x - TILE_WIDTH / 2, this.position.y - TILE_HEIGHT / 2);
+        // TODO: Remove this from internal mine tracking list
+
+        this.dcount++;
+        if (this.dcount >= explodeLength * 6) {
+            this.explosionFinished = true;
+        }
     }
     this.timeLeft--;  // decrement time count once per loop
 };
@@ -1243,7 +1297,6 @@ enemy1Obj.prototype.draw = function(panzer) {
 
         // Lay a mine every so often
         if (loopCount % 500 === random(0 % 100)) {
-            // println("pushing")
             GAME_INST.spawnObjects.push(new mineObj(this.position.x, this.position.y));
         }
     }
@@ -1294,7 +1347,7 @@ enemy2Obj.prototype.draw = function() {
         image(Assets_t.ENEMY_FRONT, this.position.x, this.position.y - TILE_HEIGHT * 3 / 4, TILE_WIDTH, TILE_HEIGHT);
 
         // add bullet to bullet list
-        if (loopCount % 90 === 0) {
+        if (loopCount % 30 === 0) {
             this.bullets.push(new bulletObj(this.position.x + TILE_WIDTH * 0.5 , this.position.y + TILE_HEIGHT, 6));
         }
 
@@ -1688,6 +1741,9 @@ var gameObj = function() {
 
     this.currentLevel;
     this.panzer;
+
+    this.coins = 0;
+    this.prevLevel = 0;
 };
 
 /*
@@ -1724,7 +1780,7 @@ var createRandomizedTileMap = function(tMap, difficulty) {
         case MapDifficulty_e.EASY:
 
             // Ratio of enemy types to be chosen from and inserted in the lines
-            var enemySymbols = ['a', 'a', 'b'];
+            var enemySymbols = ['a', 'a', 'a', 'b', 'b'];
 
             // Array to control the number of enemies spawned per line
             var probability = [0, 0, 0, 0, 0, 1, 1, 2]; 
@@ -1787,9 +1843,7 @@ var createRandomizedTileMap = function(tMap, difficulty) {
             }
             tMap.push("            ");
             tMap.push("            ");
-
             tMap.push("     y      ");
-
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
@@ -1898,9 +1952,7 @@ var createRandomizedTileMap = function(tMap, difficulty) {
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
-
             tMap.push("        m   ");  // m = minigun
-
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
@@ -2099,6 +2151,14 @@ gameObj.prototype.initialize = function() {
         }
     }
 
+    this.yCoor = 0;
+    this.xCoor = 0;
+    this.score = 0;
+    this.scoreMultiplier = 10;
+    this.enemyCount = 0;
+    this.coins = 0;
+    this.prevLevel = 0;
+
     this.finalBoss = new bossEnemy( (SCREEN_WIDTH / 4), 44 * TILE_HEIGHT);
     this.finalHealthPickups = [
         new upgradedObj((SCREEN_WIDTH / 4), 48 * TILE_HEIGHT, ObjectType_e.HEALTH),
@@ -2120,15 +2180,27 @@ gameObj.prototype.drawLevelOne = function(y, loopIteration) {
     if (loopIteration === 0) {  // First iteration
         for (var i = 0; i < GAME_INST.spawnObjects.length; i++) { // objects like mines
             GAME_INST.spawnObjects[i].draw();
+            if (GAME_INST.spawnObjects[i].defeated && GAME_INST.spawnObjects[i].explosionFinished) {
+                // println("splicing spawn objects");
+                GAME_INST.spawnObjects.splice(i, 1);  // eliminate the mines that already exploded
+            }
         }
         for (var i = 0; i < GAME_INST.gameObjects.length; i++) { // collectable objects
             if (!GAME_INST.gameObjects[i].collected) {
                 GAME_INST.gameObjects[i].draw(y);
             }
+            else {
+                GAME_INST.gameObjects.splice(i, 1);  // eliminate objects already collected
+            }
         }
         for (var i = 0; i < GAME_INST.enemyObjects.length; i++) { // enemy objects
             GAME_INST.enemyObjects[i].draw(GAME_INST.panzer);  
             GAME_INST.enemyObjects[i].wander();
+            
+            // Don't keep old and defeated enemy objects around in the array
+            if (GAME_INST.enemyObjects[i].defeated && GAME_INST.enemyObjects[i].dcount > explodeLength * explodeFrames) {
+                GAME_INST.enemyObjects.splice(i, 1);
+            }
         }
     }
     else if (loopIteration === 1) {  // Second iteration
@@ -2207,7 +2279,7 @@ gameObj.prototype.drawFinalStage = function() {
  * Pass in a loop counter to track how many loop passes have been made
  */
 var animatedLoadTransition = function(y) {
-    
+
 };
 
 /*
@@ -2518,6 +2590,10 @@ var drawHUD = function() {
     popMatrix();
 };
 
+var drawShop = function() {
+
+}
+
 /*
  * Overload Processing's callback function 
  * This function is called at 60 FPS (frames per second)
@@ -2533,13 +2609,20 @@ var draw = function() {
          */
         case GameState_e.START_SCREEN:
             drawStartScreen();
-            if (MouseState.PRESSED && mouseX < 303 && mouseX > 0 && mouseY < 164 && mouseY > 64) {
-                changeGameState(GameState_e.ANIMATED_LOAD_TRANSITION);
-                MouseState.PRESSED = 0;  // Force a click release
+            if (mouseX < 303 && mouseX > 0 && mouseY < 164 && mouseY > 64) {
+                image(GameScreens_t.SELECT_MARKER, 0, 80);
+                if (MouseState.PRESSED) {
+                    changeGameState(GameState_e.ANIMATED_LOAD_TRANSITION);
+                    MouseState.PRESSED = 0;  // Force a click release
+                }
             }
-            if (MouseState.PRESSED && mouseX < 215 && mouseX > 0 && mouseY < 270 && mouseY > 196) {
-                changeGameState(GameState_e.ANIMATED_HELP_TRANSITION);
-                MouseState.PRESSED = 0;  // Force a click release
+            
+            if (mouseX < 215 && mouseX > 0 && mouseY < 270 && mouseY > 196) {
+                image(GameScreens_t.SELECT_MARKER, 0, 210, 40, 50);
+                if (MouseState.PRESSED) {
+                    changeGameState(GameState_e.ANIMATED_HELP_TRANSITION);
+                    MouseState.PRESSED = 0;  // Force a click release
+                }
             }
             break;
 
@@ -2561,7 +2644,7 @@ var draw = function() {
          * -------------------
          */
         case GameState_e.LEVEL_ONE:
-            //changeGameState(GameState_e.LEVEL_TWO);
+            changeGameState(GameState_e.SHOP);
             wave_1_sound.play();
 
             pushMatrix();
@@ -2574,8 +2657,10 @@ var draw = function() {
             if (loopCount > 0) { 
                 loopCount = -MAP_OFFSET;
                 GAME_INST.panzer.y -= loopCount;
-                //loopIterations++;
-                changeGameState(GameState_e.LEVEL_TWO);
+                // loopIterations++;
+                GAME_INST.coins += 2; // add 2 coins for the user to spend in the shop
+                GAME_INST.prevLevel = GameState_e.LEVEL_ONE;
+                changeGameState(GameState_e.SHOP);
                 wave_1_sound.pause();
             }
             var tem = loopCount - 400
@@ -2598,6 +2683,8 @@ var draw = function() {
             else if (loopIterations === 1) {  
                 checkCollisionWithEnemies(GAME_INST.panzer, GAME_INST.enemyObjects2);
             }
+            
+            checkCollisionWithSpawnObjects();
 
             // Main functionality of the panzer tank
             GAME_INST.panzer.draw(loopCount, GameState_e.LEVEL_ONE);
@@ -2648,6 +2735,11 @@ var draw = function() {
             }
 
             popMatrix();
+            break;
+        
+        case GameState_e.SHOP:
+            image(GameScreens_t.SHOP_SCREEN, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+            println("mouseY = " + mouseY + " | mouseX = " + mouseX);
             break;
 
         /*
@@ -2933,14 +3025,17 @@ var draw = function() {
             drawHelpScreen(loopCount); // Draw the help screen
 
             // Check if the user clicked the animated back button
-            var mouseInArrow = MouseState.PRESSED && mouseX < 675 && mouseX > 574 && mouseY < 587 && mouseY > 490;
-            var mouseInArrowStem = MouseState.PRESSED && mouseX < 575 && mouseX > 523 && mouseY < 556 && mouseY > 524;
+            var mouseInArrow = mouseX < 675 && mouseX > 574 && mouseY < 587 && mouseY > 490;
+            var mouseInArrowStem = mouseX < 575 && mouseX > 523 && mouseY < 556 && mouseY > 524;
 
             // If mouse click is placed correctly, transition back to the menu
             // via reversed animation
             if (mouseInArrow || mouseInArrowStem) {
-                changeGameState(GameState_e.ANIMATED_MENU_TRANSITION);
-                MouseState.PRESSED = 0;  // Force a click release
+                image(GameScreens_t.HELP_SELECT_MARKER, 578, 498);
+                if (MouseState.PRESSED) {
+                    changeGameState(GameState_e.ANIMATED_MENU_TRANSITION);
+                    MouseState.PRESSED = 0;  // Force a click release    
+                }
             }
             loopCount++;
             break;
