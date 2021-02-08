@@ -923,7 +923,21 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
     }
     self.y -= 1;
     if (DISABLE.SPACE === false && self.boostAvailable > 3 && !self.boostUsed) {  // Boost activated
-        self.speed = 6;
+        var total_boost = GAME_INST.upgrades[0] + GAME_INST.upgrades[1] + GAME_INST.upgrades[2];
+
+        if (total_boost === 0) {
+            self.speed = 5;
+        }
+        else if (total_boost === 1) {
+            self.speed = 7;
+        }
+        else if (total_boost === 2) {
+            self.speed = 9;
+        }
+        else if (total_boost === 3) {
+            self.speed = 11;
+        }
+        
         self.boostAvailable -= 4;  // Decrement the available boost left
 
         if (-frameCount % 15 < 5) { // 0 -> 3
@@ -958,8 +972,6 @@ tankUpgradedObj.prototype.draw = function(frameCount, currentLevel) {
             ctx.drawImage(panzer_img, 204, 0, TILE_WIDTH * 1.5, TILE_HEIGHT * 1.55, self.x, self.y, TILE_WIDTH, TILE_HEIGHT);
         }
     }
-
-
 
     // Aiming (rotation/translation) of the tank gun
     if (!DISABLE.LEFT) {
@@ -1698,11 +1710,11 @@ var gameObj = function() {
     // this.tilemap2 = [];
 
     // Level 2 tilemaps
-    //this.tilemap3 = [];
+    this.tilemap3 = [];
     // this.tilemap4 = [];
 
     // Level 3 tilemaps
-    //this.tilemap5 = [];
+    this.tilemap5 = [];
     // this.tilemap6 = [];
     
     // Game objects array for 1st iteration of level 1
@@ -1711,23 +1723,23 @@ var gameObj = function() {
 
     // Game objects array for 2nd iteration of level 1
     this.gameObjects2 = [];
-    // this.enemyObjects2 = [];
+    this.enemyObjects2 = [];
 
     // Game objects array for 1st iteration of level 2
     this.gameObjects3 = [];
-    // this.enemyObjects3 = [];
+    this.enemyObjects3 = [];
 
     // Game objects array for 2nd iteration of level 2
     this.gameObjects4 = [];
-    // this.enemyObjects4 = [];
+    this.enemyObjects4 = [];
     
     // Game objects array for 1st iteration of level 3
     this.gameObjects5 = [];
-    // this.enemyObjects5 = [];
+    this.enemyObjects5 = [];
     
     // Game objects array for 2nd iteration of level 3
     this.gameObjects6 = [];
-    // this.enemyObjects6 = [];
+    this.enemyObjects6 = [];
 
     this.spawnObjects = [];
 
@@ -1744,6 +1756,13 @@ var gameObj = function() {
 
     this.coins = 0;
     this.prevLevel = 0;
+    
+    // 1 signifies the upgrade is already bought, and 0 signifies not bought
+    // [0][1][2]     [3][4][5]
+    // [6][7][8]     [9][10]
+    //              [0,1,2,3,4,5,6,7,8,9,10]
+    this.upgrades = [0,0,0,0,0,0,0,0,0,0,0];
+    this.tokens = 0;
 };
 
 /*
@@ -1843,7 +1862,7 @@ var createRandomizedTileMap = function(tMap, difficulty) {
             }
             tMap.push("            ");
             tMap.push("            ");
-            tMap.push("     y      ");
+            tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
@@ -1952,7 +1971,7 @@ var createRandomizedTileMap = function(tMap, difficulty) {
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
-            tMap.push("        m   ");  // m = minigun
+            tMap.push("            ");  // m = minigun
             tMap.push("            ");
             tMap.push("            ");
             tMap.push("            ");
@@ -2106,10 +2125,10 @@ gameObj.prototype.initialize = function() {
     // createRandomizedTileMap(this.tilemap2, MapDifficulty_e.EASY, 2);
     
     // Create custom tilemaps for level 2
-    // createRandomizedTileMap(this.tilemap3, MapDifficulty_e.MEDIUM);
+    createRandomizedTileMap(this.tilemap3, MapDifficulty_e.MEDIUM);
     
     // Create custom tilemaps for level 3
-    // createRandomizedTileMap(this.tilemap5, MapDifficulty_e.HARD);
+    createRandomizedTileMap(this.tilemap5, MapDifficulty_e.HARD);
 
     // Initialize arrays based off of tilemap for 1st iteration of the 1st level
     for (var i = 0; i < this.tilemap.length; i++) {
@@ -2127,17 +2146,59 @@ gameObj.prototype.initialize = function() {
                 case 'd':
                     this.enemyObjects.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // d = enemy 4
                     break;
-                case 'y':
-                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.BASIC_GUN));  
+                case 'h':
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.HEALTH));
                     break;
-                case 'm':
-                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.MINI_GUN));
+                case 'z':
+                    this.finalBoss = new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT);
                     break;
-                case 'r':
-                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.ROCKET_GUN));
+                default:
                     break;
-                case 'u':
-                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.DUAL_MINIGUN));
+            }
+        }
+    }
+
+    for (var i = 0; i < this.tilemap3.length; i++) {
+        for (var j = 0; j < this.tilemap3[i].length; j++) {
+            switch (this.tilemap3[i][j]) {
+                case 'a':
+                    this.enemyObjects.push(new enemy1Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // a = enemy 1
+                    break;
+                case 'b':
+                    this.enemyObjects.push(new enemy2Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // b = enemy 2
+                    break;
+                case 'c':
+                    this.enemyObjects.push(new enemy3Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // c = enemy 3
+                    break;
+                case 'd':
+                    this.enemyObjects.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // d = enemy 4
+                    break;
+                case 'h':
+                    this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.HEALTH));
+                    break;
+                case 'z':
+                    this.finalBoss = new bossEnemy(j * TILE_WIDTH, i * TILE_HEIGHT);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    for (var i = 0; i < this.tilemap5.length; i++) {
+        for (var j = 0; j < this.tilemap5[i].length; j++) {
+            switch (this.tilemap5[i][j]) {
+                case 'a':
+                    this.enemyObjects.push(new enemy1Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // a = enemy 1
+                    break;
+                case 'b':
+                    this.enemyObjects.push(new enemy2Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // b = enemy 2
+                    break;
+                case 'c':
+                    this.enemyObjects.push(new enemy3Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // c = enemy 3
+                    break;
+                case 'd':
+                    this.enemyObjects.push(new enemy4Obj(j * TILE_WIDTH, i * TILE_HEIGHT));  // d = enemy 4
                     break;
                 case 'h':
                     this.gameObjects.push(new upgradedObj(j * TILE_WIDTH, i * TILE_HEIGHT, ObjectType_e.HEALTH));
@@ -2545,6 +2606,168 @@ var drawHelpScreen = function(frameCount) {
     }
 };
 
+var validBuy = function() {
+    return (MouseState.PRESSED && GAME_INST.tokens > 0);
+}
+
+var checkShopChoices = function() {
+    if (mouseY >= 218 && mouseY <= 288) { // y is in the top row of the shop
+        if (mouseX >= 48 && mouseX <= 116) { // 1st block 
+            image(GameScreens_t.SHOP_HOVER, 52, 222, 60, 60);
+            if (validBuy() && GAME_INST.upgrades[0] != 1) {
+                GAME_INST.upgrades[0] = 1;
+                GAME_INST.tokens -= 1;
+                return false;
+            }
+            if (validBuy() && GAME_INST.upgrades[0] != 0) {
+                GAME_INST.upgrades[0] = 0;
+                GAME_INST.tokens += 1;
+                return false;
+            }
+        }
+        if (mouseX >= 134 && mouseX <= 203) { // 2nd block 
+            image(GameScreens_t.SHOP_HOVER, 138, 222, 60, 60);
+            if (validBuy() && GAME_INST.upgrades[1] != 1) {
+                GAME_INST.upgrades[1] = 1;
+                GAME_INST.tokens -= 1;
+                return false;
+            }
+            if (validBuy() && GAME_INST.upgrades[1] != 0) {
+                GAME_INST.upgrades[1] = 0;
+                GAME_INST.tokens += 1;
+                return false;
+            }
+        }
+        if (mouseX >= 220 && mouseX <= 289) { // 3rd block
+            image(GameScreens_t.SHOP_HOVER, 224, 222, 60, 60);
+            if (validBuy() && GAME_INST.upgrades[2] != 1) {
+                GAME_INST.upgrades[2] = 1;
+                GAME_INST.tokens -= 1;
+                return false;
+            }
+            if (validBuy() && GAME_INST.upgrades[2] != 0) {
+                GAME_INST.upgrades[2] = 0;
+                GAME_INST.tokens += 1;
+                return false;
+            }
+        }
+        if (mouseX >= 448 && mouseX <= 517) { // 3rd block
+            image(GameScreens_t.SHOP_HOVER, 452, 222, 60, 60);
+            if (validBuy() && GAME_INST.upgrades[3] != 1) {
+                GAME_INST.upgrades[3] = 1;
+                GAME_INST.tokens -= 1;
+                return false;
+            }
+            if (validBuy() && GAME_INST.upgrades[3] != 0) {
+                GAME_INST.upgrades[3] = 0;
+                GAME_INST.tokens += 1;
+                return false;
+            }
+        }
+        if (mouseX >= 534 && mouseX <= 603) { // 3rd block
+            image(GameScreens_t.SHOP_HOVER, 538, 222, 60, 60);
+            if (validBuy() && GAME_INST.upgrades[4] != 1) {
+                GAME_INST.upgrades[4] = 1;
+                GAME_INST.tokens -= 1;
+                return false;
+            }
+            if (validBuy() && GAME_INST.upgrades[4] != 0) {
+                GAME_INST.upgrades[4] = 0;
+                GAME_INST.tokens += 1;
+                return false;
+            }
+        }
+        if (mouseX >= 620 && mouseX <= 688) { // 3rd block
+            image(GameScreens_t.SHOP_HOVER, 624, 222, 60, 60);
+            if (validBuy() && GAME_INST.upgrades[5] != 1) {
+                GAME_INST.upgrades[5] = 1;
+                GAME_INST.tokens -= 1;
+                return false;
+            }
+            if (validBuy() && GAME_INST.upgrades[5] != 0) {
+                GAME_INST.upgrades[5] = 0;
+                GAME_INST.tokens += 1;
+                return false;
+            }
+        }        
+    }  // end top row
+
+    if (mouseY >= 386 && mouseY <= 454) { // y is in the top row of the shop
+        if (mouseX >= 48 && mouseX <= 116) { // 1st block 
+            image(GameScreens_t.SHOP_HOVER, 52, 390, 60, 60);
+            if (validBuy() && GAME_INST.upgrades[6] != 1) {
+                GAME_INST.upgrades[6] = 1;
+                GAME_INST.tokens -= 1;
+                return false;
+            }
+            if (validBuy() && GAME_INST.upgrades[6] != 0) {
+                GAME_INST.upgrades[6] = 0;
+                GAME_INST.tokens += 1;
+                return false;
+            }
+        }
+        if (mouseX >= 134 && mouseX <= 203) { // 2nd block 
+            image(GameScreens_t.SHOP_HOVER, 138, 390, 60, 60);
+            if (validBuy() && GAME_INST.upgrades[7] != 1) {
+                GAME_INST.upgrades[7] = 1;
+                GAME_INST.tokens -= 1;
+                return false;
+            }
+            if (validBuy() && GAME_INST.upgrades[7] != 0) {
+                GAME_INST.upgrades[7] = 0;
+                GAME_INST.tokens += 1;
+                return false;
+            }
+        }
+        if (mouseX >= 220 && mouseX <= 289) { // 3rd block
+            image(GameScreens_t.SHOP_HOVER, 224, 390, 60, 60);
+            if (validBuy() && GAME_INST.upgrades[8] != 1) {
+                GAME_INST.upgrades[8] = 1;
+                GAME_INST.tokens -= 1;
+                return false;
+            }
+            if (validBuy() && GAME_INST.upgrades[8] != 0) {
+                GAME_INST.upgrades[8] = 0;
+                GAME_INST.tokens += 1;
+                return false;
+            }
+        }
+        if (mouseX >= 448 && mouseX <= 517) { // 3rd block
+            image(GameScreens_t.SHOP_HOVER, 452, 390, 60, 60);
+            if (validBuy() && GAME_INST.upgrades[9] != 1) {
+                GAME_INST.upgrades[9] = 1;
+                GAME_INST.tokens -= 1;
+                return false;
+            }
+            if (validBuy() && GAME_INST.upgrades[9] != 0) {
+                GAME_INST.upgrades[9] = 0;
+                GAME_INST.tokens += 1;
+                return false;
+            }
+        }
+        if (mouseX >= 534 && mouseX <= 603) { // 3rd block
+            image(GameScreens_t.SHOP_HOVER, 538, 390, 60, 60);
+            if (validBuy() && GAME_INST.upgrades[10] != 1) {
+                GAME_INST.upgrades[10] = 1;
+                GAME_INST.tokens -= 1;
+                return false;
+            }
+            if (validBuy() && GAME_INST.upgrades[10] != 0) {
+                GAME_INST.upgrades[10] = 0;
+                GAME_INST.tokens += 1;
+                return false;
+            }
+        }      
+    }  // end top row
+
+    if (mouseY >= 485 && mouseY <= 585 && mouseX >= 715 && mouseX <= 788) {
+        image(GameScreens_t.SHOP_CONTINUE, 723, 490, 60, 90);
+        if (MouseState.PRESSED) {
+            return true;
+        }
+    }
+}
+
 // Initialize a new game object and set the starting screen to the main menu
 var GAME_INST = new gameObj();
 var CURRENT_GAME_STATE = GameState_e.START_SCREEN;
@@ -2560,7 +2783,7 @@ GAME_INST.panzer = createTank(
     SCREEN_WIDTH / 2 - TILE_WIDTH / 2, 
     -loopCount + SCREEN_HEIGHT * 2 / 3, 
     tankSpeed, 
-    TankOptions_e.BASIC);
+    TankOptions_e.UPGRADED);
 
 var upgradeCollected = false;
 var tankUpgraded = false;
@@ -2590,8 +2813,40 @@ var drawHUD = function() {
     popMatrix();
 };
 
-var drawShop = function() {
-
+var drawShopChoices = function() {
+    if (GAME_INST.upgrades[0] === 1) {  
+        image(GameScreens_t.SHOP_SELECTED, 52, 222, 60, 60);
+    }
+    if (GAME_INST.upgrades[1] === 1) {  
+        image(GameScreens_t.SHOP_SELECTED, 138, 222, 60, 60);
+    }
+    if (GAME_INST.upgrades[2] === 1) {  
+        image(GameScreens_t.SHOP_SELECTED, 224, 222, 60, 60);
+    }
+    if (GAME_INST.upgrades[3] === 1) {  
+        image(GameScreens_t.SHOP_SELECTED, 452, 222, 60, 60);
+    }
+    if (GAME_INST.upgrades[4] === 1) {  
+        image(GameScreens_t.SHOP_SELECTED, 538, 222, 60, 60);
+    }
+    if (GAME_INST.upgrades[5] === 1) {  
+        image(GameScreens_t.SHOP_SELECTED, 624, 222, 60, 60);
+    }
+    if (GAME_INST.upgrades[6] === 1) {  
+        image(GameScreens_t.SHOP_SELECTED, 52, 390, 60, 60);
+    }
+    if (GAME_INST.upgrades[7] === 1) {  
+        image(GameScreens_t.SHOP_SELECTED, 138, 390, 60, 60);
+    }
+    if (GAME_INST.upgrades[8] === 1) {  
+        image(GameScreens_t.SHOP_SELECTED, 224, 390, 60, 60);
+    }
+    if (GAME_INST.upgrades[9] === 1) {  
+        image(GameScreens_t.SHOP_SELECTED, 452, 390, 60, 60);
+    }
+    if (GAME_INST.upgrades[10] === 1) {  
+        image(GameScreens_t.SHOP_SELECTED, 538, 390, 60, 60);
+    }
 }
 
 /*
@@ -2644,6 +2899,7 @@ var draw = function() {
          * -------------------
          */
         case GameState_e.LEVEL_ONE:
+            GAME_INST.tokens += 2;
             changeGameState(GameState_e.SHOP);
             wave_1_sound.play();
 
@@ -2739,7 +2995,12 @@ var draw = function() {
         
         case GameState_e.SHOP:
             image(GameScreens_t.SHOP_SCREEN, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-            println("mouseY = " + mouseY + " | mouseX = " + mouseX);
+            var finished = checkShopChoices();
+            if (finished) {
+                changeGameState(GameState_e.LEVEL_TWO);
+            }
+            drawShopChoices();
+            //println("mouseY = " + mouseY + " | mouseX = " + mouseX);
             break;
 
         /*
